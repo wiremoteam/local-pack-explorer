@@ -1,0 +1,32 @@
+# macOS system files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*_backup.js
+*_backup.*
+
+# Unused files
+enabled.svg
+disabled.svg
+logo.svg
+geo.json
+maps_counter_backup.js
