@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const confirmSaveBtn = document.getElementById('confirm-save-btn');
   
   // Load saved settings
-  chrome.storage.sync.get(['geoSettings', 'businessNumberingEnabled', 'savedLocations', 'hotkeySettings'], function(result) {
+  chrome.storage.sync.get(['geoSettings', 'businessNumberingEnabled', 'savedLocations', 'hotkeySettings', 'searchHistory'], function(result) {
     const settings = result.geoSettings || {
       enabled: false,
       latitude: 40.7580,
@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const businessNumberingEnabled = result.businessNumberingEnabled !== undefined ? result.businessNumberingEnabled : true;
     const savedLocations = result.savedLocations || [];
+    const searchHistory = result.searchHistory || [];
     const hotkeySettings = result.hotkeySettings || {
       enabled: true,
       key: 'L',
@@ -60,8 +61,14 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Loading hotkey settings:', hotkeySettings);
     updateHotkeySettings(hotkeySettings);
     
-    // Display saved locations (we'll implement this in Step 4)
+    // Display saved locations
     displaySavedLocations(savedLocations);
+    
+    // Store search history for later use
+    window.searchHistory = searchHistory;
+    
+    // Initialize save button state
+    updateSaveButtonState();
   });
   
   // Enhanced function to extract coordinates from various formats
@@ -111,7 +118,13 @@ document.addEventListener('DOMContentLoaded', function() {
       // Clear the current active location by setting coordinates to 0
       latitudeInput.value = '';
       longitudeInput.value = '';
+      
+      // Hide search history when user types
+      hideSearchHistory();
     }
+    
+    // Update save button state
+    updateSaveButtonState();
     
     // Refresh chips to update highlighting
     chrome.storage.sync.get(['savedLocations'], function(result) {
@@ -135,11 +148,27 @@ document.addEventListener('DOMContentLoaded', function() {
       
       const coordLocation = `Coordinates: ${coords.latitude},${coords.longitude}`;
       
+      // Add to search history
+      addToSearchHistory(coordLocation);
+      
+      // Enable spoofing if it was disabled
+      if (!enableToggle.checked) {
+        enableToggle.checked = true;
+        saveSettings({enabled: true});
+        updateStatusText(true);
+      }
+      
       // Save coordinates when pasted directly
       saveSettings({
         latitude: coords.latitude,
         longitude: coords.longitude,
         location: coordLocation
+      });
+      
+      // Update saved location chips to reflect new active location
+      chrome.storage.sync.get(['savedLocations'], function(result) {
+        const savedLocations = result.savedLocations || [];
+        displaySavedLocations(savedLocations);
       });
       
       // Update placeholder to show used coordinates
@@ -162,6 +191,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const coordLocation = `Coordinates: ${coords.latitude},${coords.longitude}`;
         
+        // Add to search history
+        addToSearchHistory(coordLocation);
+        
+        // Enable spoofing if it was disabled
+        if (!enableToggle.checked) {
+          enableToggle.checked = true;
+          saveSettings({enabled: true});
+          updateStatusText(true);
+        }
+        
         // Apply the coordinates
         saveSettings({
           latitude: coords.latitude,
@@ -169,13 +208,31 @@ document.addEventListener('DOMContentLoaded', function() {
           location: coordLocation
         });
         
+        // Update saved location chips to reflect new active location
+        chrome.storage.sync.get(['savedLocations'], function(result) {
+          const savedLocations = result.savedLocations || [];
+          displaySavedLocations(savedLocations);
+        });
+        
         // Update placeholder to show used coordinates
         locationInput.placeholder = coordLocation;
         
-              // Clear input and suggestions
-      locationInput.value = '';
-      suggestions.style.display = 'none';
-      e.preventDefault();
+        // Clear input and suggestions
+        locationInput.value = '';
+        suggestions.style.display = 'none';
+        e.preventDefault();
+      }
+    }
+  });
+  
+  // Show search history when input is focused and empty
+  locationInput.addEventListener('focus', function() {
+    if (locationInput.value.length === 0) {
+      showSearchHistory();
+    } else {
+      // If there's text in the input, trigger search suggestions
+      if (locationInput.value.length >= 2) {
+        fetchLocationSuggestions(locationInput.value);
       }
     }
   });
@@ -294,6 +351,15 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Save Location Modal functionality
   saveLocationBtn.addEventListener('click', function() {
+    // Check if we should clear the input instead
+    if (locationInput.value.length > 0) {
+      // Clear the input
+      locationInput.value = '';
+      locationInput.focus();
+      updateSaveButtonState();
+      return;
+    }
+    
     // Update preview with current values
     const currentLat = parseFloat(latitudeInput.value) || 0;
     const currentLng = parseFloat(longitudeInput.value) || 0;
@@ -428,7 +494,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Helper functions
-  function fetchLocationSuggestions(query) {
+  function fetchLocationSuggestions(query, autoSelect = false) {
 
     const url = `https://www.google.com/s?tbm=map&suggest=p&gs_ri=maps&gl=US&hl=en&authuser=0&q=${encodeURIComponent(query)}&ech=6&pb=%212i5%214m12%211m3%211d94818581.28087418%212d-20.23133860264248%213d42.377446969366396%212m3%211f0%212f0%213f0%213m2%211i791%212i754%214f13.1%217i20%2110b1%2112m16%211m1%2118b1%212m3%215m1%216e2%2120e3%2110b1%2112b1%2113b1%2116b1%2117m1%213e1%2120m3%215e2%216b1%2114b1%2119m4%212m3%211i360%212i120%214i8%2120m57%212m2%211i203%212i100%213m2%212i4%215b1%216m6%211m2%211i86%212i86%211m2%211i408%212i240%217m42%211m3%211e1%212b0%213e3%211m3%211e2%212b1%213e2%211m3%211e2%212b0%213e3%211m3%211e8%212b0%213e3%211m3%211e10%212b0%213e3%211m3%211e10%212b1%213e2%211m3%211e9%212b1%213e2%211m3%211e10%212b0%213e3%211m3%211e10%212b1%213e2%211m3%211e10%212b0%213e4%212b1%214b1%219b0%2122m3%211sAsuuZfP-HeT-7_UPpJ6DwAQ%217e81%2117sAsuuZfP-HeT-7_UPpJ6DwAQ%3A64%2123m3%211e116%214b1%2110b1%2124m90%211m29%2113m9%212b1%213b1%214b1%216i1%218b1%219b1%2114b1%2120b1%2125b1%2118m18%213b1%214b1%215b1%216b1%219b1%2112b1%2113b1%2114b1%2115b1%2117b1%2120b1%2121b1%2122b1%2125b1%2127m1%211b0%2128b0%2131b0%2110m1%218e3%2111m1%213e1%2114m1%213b1%2117b1%2120m2%211e3%211e6%2124b1%2125b1%2126b1%2129b1%2130m1%212b1%2136b1%2139m3%212m2%212i1%213i1%2143b1%2152b1%2154m1%211b1%2155b1%2156m2%211b1%213b1%2165m5%213m4%211m3%211m2%211i224%212i298%2171b1%2172m17%211m5%211b1%212b1%213b1%215b1%217b1%214b1%218m8%211m6%214m1%211e1%214m1%211e3%214m1%211e4%213sother_user_reviews%219b1%2189b1%21103b1%21113b1%21117b1%21122m1%211b1%2126m4%212m3%211i80%212i92%214i8%2134m18%212b1%213b1%214b1%216b1%218m6%211b1%213b1%214b1%215b1%216b1%217b1%219b1%2112b1%2114b1%2120b1%2123b1%2125b1%2126b1%2137m1%211e81%2147m0%2149m7%213b1%216m2%211b1%212b1%217m2%211e3%212b1%2161b1%2167m2%217b1%2110b1%2169i678`;
     
@@ -502,6 +568,44 @@ document.addEventListener('DOMContentLoaded', function() {
           return;
         }
         
+        // If autoSelect is true and we have results, automatically select the first one
+        if (autoSelect && locations.length > 0) {
+          const firstPlace = locations[0];
+          latitudeInput.value = firstPlace.latitude;
+          longitudeInput.value = firstPlace.longitude;
+          locationInput.placeholder = firstPlace.location;
+          locationInput.value = '';
+          suggestions.innerHTML = '';
+          suggestions.style.display = 'none';
+          
+          // Update save button to show save icon
+          updateSaveButtonState();
+          
+          // Add to search history
+          addToSearchHistory(firstPlace.location);
+          
+          // Enable spoofing if it was disabled
+          if (!enableToggle.checked) {
+            enableToggle.checked = true;
+            saveSettings({enabled: true});
+            updateStatusText(true);
+          }
+          
+          saveSettings({
+            latitude: firstPlace.latitude,
+            longitude: firstPlace.longitude,
+            location: firstPlace.location
+          });
+          
+          // Update saved location chips to reflect new active location
+          chrome.storage.sync.get(['savedLocations'], function(result) {
+            const savedLocations = result.savedLocations || [];
+            displaySavedLocations(savedLocations);
+          });
+          
+          return; // Exit early since we auto-selected
+        }
+        
         locations.forEach(place => {
           const item = document.createElement('div');
           item.className = 'suggestion-item';
@@ -549,10 +653,29 @@ document.addEventListener('DOMContentLoaded', function() {
             suggestions.innerHTML = '';
             suggestions.style.display = 'none';
             
+            // Update save button to show save icon
+            updateSaveButtonState();
+            
+            // Add to search history
+            addToSearchHistory(place.location);
+            
+            // Enable spoofing if it was disabled
+            if (!enableToggle.checked) {
+              enableToggle.checked = true;
+              saveSettings({enabled: true});
+              updateStatusText(true);
+            }
+            
             saveSettings({
               latitude: place.latitude,
               longitude: place.longitude,
               location: place.location
+            });
+            
+            // Update saved location chips to reflect new active location
+            chrome.storage.sync.get(['savedLocations'], function(result) {
+              const savedLocations = result.savedLocations || [];
+              displaySavedLocations(savedLocations);
             });
           });
           suggestions.appendChild(item);
@@ -714,6 +837,216 @@ document.addEventListener('DOMContentLoaded', function() {
       clearTimeout(timeout);
       timeout = setTimeout(() => func.apply(context, args), wait);
     };
+  }
+  
+  // Search history management functions
+  function addToSearchHistory(location) {
+    if (!location || typeof location !== 'string') return;
+    
+    chrome.storage.sync.get(['searchHistory'], function(result) {
+      let history = result.searchHistory || [];
+      
+      // Remove if already exists
+      history = history.filter(item => item !== location);
+      
+      // Add to beginning
+      history.unshift(location);
+      
+      // Keep only last 5 items
+      history = history.slice(0, 5);
+      
+      // Save to storage
+      chrome.storage.sync.set({searchHistory: history});
+      
+      // Update local reference
+      window.searchHistory = history;
+    });
+  }
+  
+  function showSearchHistory() {
+    if (!window.searchHistory || window.searchHistory.length === 0) {
+      suggestions.innerHTML = '<div class="suggestion-item">No recent searches</div>';
+      suggestions.style.display = 'block';
+      return;
+    }
+    
+    suggestions.innerHTML = '';
+    suggestions.style.display = 'block';
+    
+    // Add "Recent Searches" header
+    const header = document.createElement('div');
+    header.className = 'suggestion-item';
+    header.style.fontWeight = '600';
+    header.style.color = '#64748b';
+    header.style.fontSize = '12px';
+    header.style.textTransform = 'uppercase';
+    header.style.letterSpacing = '0.5px';
+    header.textContent = 'Recent Searches';
+    suggestions.appendChild(header);
+    
+    // Add history items
+    window.searchHistory.forEach(item => {
+      const historyItem = document.createElement('div');
+      historyItem.className = 'suggestion-item';
+      historyItem.style.cursor = 'pointer';
+      historyItem.style.position = 'relative';
+      
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'business-name';
+      nameDiv.textContent = item;
+      nameDiv.style.marginRight = '30px'; // Make space for delete button
+      
+      const timeDiv = document.createElement('div');
+      timeDiv.className = 'business-address';
+      timeDiv.textContent = 'Click to spoof this location';
+      timeDiv.style.fontSize = '11px';
+      timeDiv.style.color = '#94a3b8';
+      
+      // Create delete button
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'history-delete-btn';
+      deleteBtn.style.cssText = `
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        padding: 2px;
+        border-radius: 50%;
+        cursor: pointer;
+        color: #64748b;
+        opacity: 0;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        margin-left: 4px;
+      `;
+      deleteBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 18L18 6M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+      
+      // Show delete button on hover
+      historyItem.addEventListener('mouseenter', function() {
+        deleteBtn.style.opacity = '1';
+      });
+      
+      historyItem.addEventListener('mouseleave', function() {
+        deleteBtn.style.opacity = '0';
+      });
+      
+      // Delete button hover effects
+      deleteBtn.addEventListener('mouseenter', function() {
+        deleteBtn.style.backgroundColor = '#fef2f2';
+        deleteBtn.style.color = '#dc2626';
+      });
+      
+      deleteBtn.addEventListener('mouseleave', function() {
+        deleteBtn.style.backgroundColor = 'transparent';
+        deleteBtn.style.color = '#64748b';
+      });
+      
+      // Delete button click handler
+      deleteBtn.addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent triggering the main click
+        deleteFromSearchHistory(item);
+      });
+      
+      historyItem.appendChild(nameDiv);
+      historyItem.appendChild(timeDiv);
+      historyItem.appendChild(deleteBtn);
+      
+      historyItem.addEventListener('click', function(e) {
+        // Don't trigger if clicking on delete button
+        if (e.target.closest('.history-delete-btn')) {
+          return;
+        }
+        
+                  // Clear input and hide suggestions
+          locationInput.value = '';
+          suggestions.style.display = 'none';
+          
+          // Update save button to show save icon
+          updateSaveButtonState();
+          
+          // For history items, we need to search and get coordinates
+          // We'll use the original search query to get coordinates
+          fetchLocationSuggestions(item, true); // true = auto-select first result
+          
+          // Enable spoofing if it was disabled
+          if (!enableToggle.checked) {
+            enableToggle.checked = true;
+            saveSettings({enabled: true});
+            updateStatusText(true);
+          }
+      });
+      
+      suggestions.appendChild(historyItem);
+    });
+  }
+  
+  function hideSearchHistory() {
+    if (suggestions.style.display === 'block' && suggestions.querySelector('.business-name')) {
+      const firstItem = suggestions.querySelector('.suggestion-item');
+      if (firstItem && firstItem.textContent === 'Recent Searches') {
+        suggestions.style.display = 'none';
+      }
+    }
+  }
+  
+  function deleteFromSearchHistory(itemToDelete) {
+    chrome.storage.sync.get(['searchHistory'], function(result) {
+      let history = result.searchHistory || [];
+      
+      // Remove the specific item
+      history = history.filter(item => item !== itemToDelete);
+      
+      // Save updated history
+      chrome.storage.sync.set({searchHistory: history}, function() {
+        // Update local reference
+        window.searchHistory = history;
+        
+        // Refresh the history display
+        if (suggestions.style.display === 'block') {
+          showSearchHistory();
+        }
+      });
+    });
+  }
+  
+  function updateSaveButtonState() {
+    const saveLocationBtn = document.getElementById('save-location-btn');
+    
+    if (locationInput.value.length > 0) {
+      // Show clear icon when there's text in input
+      saveLocationBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 18L18 6M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+      saveLocationBtn.title = 'Clear search input';
+    } else {
+      // Show save icon when input is empty
+      saveLocationBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V7L17 3Z"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M17 3V7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      `;
+      saveLocationBtn.title = 'Save current location';
+    }
   }
   
   // Check for duplicates and save location
@@ -1013,6 +1346,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('click', function(event) {
     if (event.target !== locationInput && event.target !== suggestions && !suggestions.contains(event.target)) {
       suggestions.innerHTML = '';
+      suggestions.style.display = 'none';
     }
   });
   
@@ -1035,6 +1369,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (newSettings.location !== undefined) {
           locationInput.placeholder = newSettings.location;
         }
+        
+        // Update saved location chips to reflect new active location
+        chrome.storage.sync.get(['savedLocations'], function(result) {
+          const savedLocations = result.savedLocations || [];
+          displaySavedLocations(savedLocations);
+        });
       }
     }
   });
