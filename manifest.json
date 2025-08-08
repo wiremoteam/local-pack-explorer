@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "GEO Location Spoofer for Maps & Search by GTrack",
+  "version": "2.1",
+  "description": "Professional location spoofing tool for Google Maps and Google Search. Local SEO Tools",
+  "permissions": [
+    "storage",
+    "declarativeNetRequest",
+    "notifications"
+  ],
+  "host_permissions": [
+    "*://*.google.com/*",
+    "*://labs.google/*"
+  ],
+  "commands": {
+    "toggle-location-spoofing": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      },
+      "description": "Toggle location spoofing on/off"
+    }
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "img/icon16.png",
+      "48": "img/icon48.png",
+      "128": "img/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "img/icon16.png",
+    "48": "img/icon48.png",
+    "128": "img/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.google.com/maps/*",
+        "https://maps.google.com/*"
+      ],
+      "js": ["maps_counter.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
