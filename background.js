@@ -95,7 +95,7 @@ const RULE_TEMPLATES = {
 function createXgeoHeader(latitude, longitude) {
   const lat = Math.floor(latitude * 1e7);
   const lng = Math.floor(longitude * 1e7);
-  const xgeo = `role: CURRENT_LOCATION\nproducer: DEVICE_LOCATION\nradius: 65000\nlatlng <\n  latitude_e7: ${lat}\n  longitude_e7: ${lng}\n>`;
+  const xgeo = `role: CURRENT_LOCATION\nproducer: DEVICE_LOCATION\nradius: 6400\nlatlng <\n  latitude_e7: ${lat}\n  longitude_e7: ${lng}\n>`;
   return 'a ' + btoa(xgeo);
 }
 

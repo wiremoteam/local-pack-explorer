@@ -18,13 +18,13 @@ if (window.gtrackScriptInitialized && window.gtrackScriptInitialized === true) {
   let initializationAttempted = false;
   let globalInitializationLock = false;
   let lastNumberUsed = 0; // Track the last number used
-  let businessNumberingEnabled = true; // Track business numbering state
+  let businessNumberingEnabled = true; // Track Maps Result numbering state
 
   // Load setting from storage on startup
   if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
     chrome.storage.sync.get(['businessNumberingEnabled'], function(result) {
       businessNumberingEnabled = result.businessNumberingEnabled !== undefined ? result.businessNumberingEnabled : true;
-      // console.log('[GTrack] Loaded business numbering setting:', businessNumberingEnabled);
+      // console.log('[GTrack] Loaded Maps Result numbering setting:', businessNumberingEnabled);
     });
   }
 
@@ -90,7 +90,7 @@ if (window.gtrackScriptInitialized && window.gtrackScriptInitialized === true) {
   function numberResults() {
     // Simple check: if disabled, remove numbers and exit
     if (!businessNumberingEnabled) {
-      // console.log('[GTrack] Business numbering disabled, removing existing numbers');
+      // console.log('[GTrack] Maps Result numbering disabled, removing existing numbers');
       getCachedCounters().forEach(el => el.remove());
       return;
     }
@@ -98,7 +98,7 @@ if (window.gtrackScriptInitialized && window.gtrackScriptInitialized === true) {
     const cards = getCachedCards();
     if (!cards.length) return;
 
-    // console.log('[GTrack] Numbering enabled, processing cards...');
+    // console.log('[GTrack] Maps Result numbering enabled, processing cards...');
 
     const processedCards = new Set();
     let localCounter = lastNumberUsed + 1; // Start from the last number + 1
@@ -311,13 +311,13 @@ if (window.gtrackScriptInitialized && window.gtrackScriptInitialized === true) {
       if (request.action === 'toggleBusinessNumbering') {
         businessNumberingEnabled = request.enabled;
         if (request.enabled) {
-          // console.log('[GTrack] Business numbering enabled via popup');
+          // console.log('[GTrack] Maps Result numbering enabled via popup');
           // Re-initialize if not already running
           if (!isInitialized) {
             initializeScript();
           }
         } else {
-          // console.log('[GTrack] Business numbering disabled via popup');
+          // console.log('[GTrack] Maps Result numbering disabled via popup');
           // Remove all existing numbers
           getCachedCounters().forEach(el => el.remove());
           // Stop the script

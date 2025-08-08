@@ -5,7 +5,7 @@ Professional location spoofing tool for Google Maps and Google Search. Local SEO
 ## Features
 
 - **Location Spoofing**: Override browser geolocation for Google services
-- **Business Numbering**: Automatically number Google Maps business listings
+- **Maps Result Numbering**: Automatically number Google Maps search results
 - **Professional UI**: Clean, intuitive interface for developers and SEO professionals
 - **Real-time Toggle**: Enable/disable features instantly
 - **Precise Coordinates**: Enter exact latitude/longitude or use preset locations
@@ -25,9 +25,9 @@ Professional location spoofing tool for Google Maps and Google Search. Local SEO
 3. Enter coordinates or use preset locations
 4. Visit Google Maps or Google Search to see location-specific results
 
-### Business Numbering
+### Maps Result Numbering
 1. Navigate to Google Maps search results
-2. Toggle "Business Numbering" in the extension popup
+2. Toggle "Maps Result Numbering" in the extension popup
 3. Business listings will be automatically numbered
 
 ## File Structure
@@ -36,7 +36,7 @@ Professional location spoofing tool for Google Maps and Google Search. Local SEO
 local-pack-gps/
 ├── manifest.json          # Extension manifest
 ├── background.js          # Background script for header modification
-├── maps_counter.js        # Content script for business numbering
+├── maps_counter.js        # Content script for Maps Result numbering
 ├── popup.html            # Extension popup interface
 ├── popup.js              # Popup functionality
 ├── img/                  # Extension icons
@@ -58,7 +58,7 @@ No build process required - this is a vanilla JavaScript extension.
 ### Testing
 1. Load the extension in Chrome
 2. Test location spoofing on Google Maps
-3. Test business numbering on Google Maps search results
+3. Test Maps Result numbering on Google Maps search results
 4. Verify popup functionality
 
 ## Permissions
