@@ -5,12 +5,22 @@
   "description": "Professional location spoofing tool for Google Maps and Google Search. Local SEO Tools",
   "permissions": [
     "storage",
-    "declarativeNetRequest"
+    "declarativeNetRequest",
+    "notifications"
   ],
   "host_permissions": [
     "*://*.google.com/*",
     "*://labs.google/*"
   ],
+  "commands": {
+    "toggle-location-spoofing": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      },
+      "description": "Toggle location spoofing on/off"
+    }
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

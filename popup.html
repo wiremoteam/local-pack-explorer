@@ -704,6 +704,64 @@
       width: 12px;
       height: 12px;
     }
+    
+    /* Hotkey Configuration Styles */
+    .hotkey-section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+    }
+    
+    .hotkey-config {
+      margin-top: 16px;
+    }
+    
+    .modifier-keys {
+      margin-top: 16px;
+    }
+    
+    .checkbox-group {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    .checkbox-item input[type="checkbox"] {
+      margin-right: 6px;
+      width: 16px;
+      height: 16px;
+      accent-color: #3b82f6;
+    }
+    
+    .checkbox-label {
+      font-size: 14px;
+      color: #374151;
+      font-weight: 500;
+    }
+    
+    .hotkey-preview {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .hotkey-preview span:last-child {
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+      background: #f1f5f9;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #374151;
+      border: 1px solid #e2e8f0;
+    }
   </style>
 </head>
 
@@ -785,11 +843,15 @@
 
       <div class="toggle-container">
         <span class="toggle-label">Location Spoofing</span>
-        <label class="switch">
-          <input type="checkbox" id="enable-toggle">
-          <span class="slider"></span>
-        </label>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label class="switch">
+            <input type="checkbox" id="enable-toggle">
+            <span class="slider"></span>
+          </label>
+          <span id="hotkey-indicator" style="font-size: 11px; color: #64748b; font-family: monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0;">Cmd+Shift+L</span>
+        </div>
       </div>
+
 
 
 
@@ -865,6 +927,59 @@
           <div class="status-container">
             <div id="business-numbering-status-modal" class="status-text status-disabled">
               Maps Result numbering disabled
+            </div>
+          </div>
+          
+          <div class="hotkey-section">
+            
+            <div class="toggle-container">
+              <span class="toggle-label">Spoofing Hotkey</span>
+              <label class="switch">
+                <input type="checkbox" id="hotkey-enabled-toggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+            
+            <div class="hotkey-config">
+              <div class="form-group">
+                <label for="hotkey-key">Key:</label>
+                <select id="hotkey-key" class="modal-input">
+                  <option value="L">L</option>
+                  <option value="G">G</option>
+                  <option value="S">S</option>
+                  <option value="T">T</option>
+                  <option value="R">R</option>
+                  <option value="F">F</option>
+                  <option value="H">H</option>
+                  <option value="J">J</option>
+                  <option value="K">K</option>
+                  <option value="M">M</option>
+                </select>
+              </div>
+              
+              <div class="modifier-keys">
+                <label style="margin-bottom: 8px; display: block; font-size: 14px; font-weight: 500; color: #334155;">Modifier Keys:</label>
+                <div class="checkbox-group">
+                  <label class="checkbox-item">
+                    <input type="checkbox" id="hotkey-ctrl">
+                    <span class="checkbox-label" id="ctrl-label">Ctrl</span>
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" id="hotkey-alt">
+                    <span class="checkbox-label">Alt</span>
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" id="hotkey-shift">
+                    <span class="checkbox-label">Shift</span>
+                  </label>
+                </div>
+
+              </div>
+              
+              <div class="hotkey-preview">
+                <span style="font-size: 14px; font-weight: 500; color: #334155;">Preview: </span>
+                <span id="hotkey-preview-text" style="font-family: monospace; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Ctrl+Shift+L</span>
+              </div>
             </div>
           </div>
         </div>

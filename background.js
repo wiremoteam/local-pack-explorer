@@ -6,6 +6,15 @@ const defaultSettings = {
   location: "Times Square, New York, NY, USA"
 };
 
+// Default hotkey settings
+const defaultHotkeySettings = {
+  enabled: true,
+  key: 'L',
+  ctrl: true,
+  alt: false,
+  shift: true
+};
+
 // Performance optimization: Cache for current header value and settings
 let currentHeaderValue = null;
 let currentSettings = null;
@@ -198,14 +207,21 @@ async function applyGeolocation(settings) {
 async function initializeExtension() {
   try {
     const result = await new Promise((resolve) => {
-      chrome.storage.sync.get(['geoSettings'], resolve);
+      chrome.storage.sync.get(['geoSettings', 'hotkeySettings'], resolve);
     });
     
     const settings = result.geoSettings || defaultSettings;
+    const hotkeySettings = result.hotkeySettings || defaultHotkeySettings;
     
     if (!result.geoSettings) {
       await new Promise((resolve) => {
         chrome.storage.sync.set({geoSettings: defaultSettings}, resolve);
+      });
+    }
+    
+    if (!result.hotkeySettings) {
+      await new Promise((resolve) => {
+        chrome.storage.sync.set({hotkeySettings: defaultHotkeySettings}, resolve);
       });
     }
     
@@ -223,28 +239,158 @@ async function initializeExtension() {
 
 // Initialize on install
 chrome.runtime.onInstalled.addListener(() => {
+  console.log('Extension installed - initializing...');
   initializeExtension();
 });
 
 // Initialize on startup
 chrome.runtime.onStartup.addListener(() => {
+  console.log('Extension starting up - initializing...');
   initializeExtension();
+});
+
+// Add a simple test message
+console.log('Background script loaded - hotkey extension ready');
+
+// Test the hotkey functionality directly
+function testHotkeyFunction() {
+  console.log('Testing hotkey function directly...');
+  
+  chrome.storage.sync.get(['geoSettings', 'hotkeySettings'], function(result) {
+    const settings = result.geoSettings || defaultSettings;
+    const hotkeySettings = result.hotkeySettings || defaultHotkeySettings;
+    
+    console.log('Current settings:', settings);
+    console.log('Hotkey settings:', hotkeySettings);
+    
+    if (hotkeySettings.enabled) {
+      const newEnabled = !settings.enabled;
+      console.log('Would toggle from', settings.enabled, 'to', newEnabled);
+      
+      // Update settings
+      const updatedSettings = { ...settings, enabled: newEnabled };
+      chrome.storage.sync.set({geoSettings: updatedSettings});
+      
+      // Apply the new settings
+      applyGeolocation(updatedSettings);
+      
+      console.log('Hotkey test completed successfully');
+    } else {
+      console.log('Hotkey is disabled in settings');
+    }
+  });
+}
+
+// Test function to verify extension is working
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('Message received in background:', request);
+  
+  if (request.action === 'test-hotkey') {
+    console.log('Test hotkey function called');
+    sendResponse({success: true, message: 'Hotkey extension is working'});
+    return true; // Keep the message channel open
+  }
+  
+  if (request.action === 'test-hotkey-function') {
+    console.log('Testing hotkey function...');
+    testHotkeyFunction();
+    sendResponse({success: true, message: 'Hotkey function tested'});
+    return true;
+  }
+});
+
+// Hotkey command listener
+chrome.commands.onCommand.addListener(async (command) => {
+  console.log('Command received:', command);
+  
+  if (command === 'toggle-location-spoofing') {
+    console.log('Toggle location spoofing command received');
+    
+    try {
+      const result = await new Promise((resolve) => {
+        chrome.storage.sync.get(['geoSettings', 'hotkeySettings'], resolve);
+      });
+      
+      const settings = result.geoSettings || defaultSettings;
+      const hotkeySettings = result.hotkeySettings || defaultHotkeySettings;
+      
+      console.log('Current settings:', settings);
+      console.log('Hotkey settings:', hotkeySettings);
+      
+      // Only toggle if hotkey is enabled
+      if (hotkeySettings.enabled) {
+        const newEnabled = !settings.enabled;
+        console.log('Toggling from', settings.enabled, 'to', newEnabled);
+        
+        // Update settings with new enabled state
+        const updatedSettings = { ...settings, enabled: newEnabled };
+        
+        await new Promise((resolve) => {
+          chrome.storage.sync.set({geoSettings: updatedSettings}, resolve);
+        });
+        
+        // Apply the new settings
+        await applyGeolocation(updatedSettings);
+        
+        // Show notification about the toggle
+        const status = newEnabled ? 'enabled' : 'disabled';
+        
+        // Detect platform for correct key display
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const keyDisplay = isMac ? 'Cmd+Shift+L' : 'Ctrl+Shift+L';
+        
+        try {
+          const notificationId = `location-spoofing-${Date.now()}`;
+          chrome.notifications.create(notificationId, {
+            type: 'basic',
+            iconUrl: newEnabled ? '/img/enabled.png' : '/img/disabled.png',
+            title: 'Location Spoofing',
+            message: `Location spoofing ${status} via hotkey (${keyDisplay})`,
+            requireInteraction: false
+          });
+          
+          // Auto-dismiss notification after 1 second
+          setTimeout(() => {
+            chrome.notifications.clear(notificationId);
+          }, 1000);
+        } catch (error) {
+          // Fallback: just log the action
+          console.log(`Location spoofing ${status} via hotkey (${keyDisplay})`);
+        }
+      } else {
+        console.log('Hotkey is disabled');
+      }
+      
+    } catch (error) {
+      console.error('Error in hotkey command:', error);
+    }
+  }
 });
 
 // Optimized storage change listener with debouncing
 let storageChangeTimeout = null;
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync' && changes.geoSettings) {
-    const settings = changes.geoSettings.newValue;
-    
-    // Debounce rapid changes
-    if (storageChangeTimeout) {
-      clearTimeout(storageChangeTimeout);
+  if (area === 'sync') {
+    if (changes.geoSettings) {
+      const settings = changes.geoSettings.newValue;
+      
+      // Debounce rapid changes
+      if (storageChangeTimeout) {
+        clearTimeout(storageChangeTimeout);
+      }
+      
+      storageChangeTimeout = setTimeout(() => {
+        applyGeolocation(settings);
+      }, 100); // 100ms debounce
     }
     
-    storageChangeTimeout = setTimeout(() => {
-      applyGeolocation(settings);
-    }, 100); // 100ms debounce
+    // Handle hotkey settings changes
+    if (changes.hotkeySettings) {
+      // Note: Chrome extensions don't support dynamic command updates
+      // The hotkey settings are stored for UI purposes but the actual
+      // command is defined in manifest.json
+      console.log('Hotkey settings updated:', changes.hotkeySettings.newValue);
+    }
   }
 });
 

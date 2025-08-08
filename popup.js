@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const confirmSaveBtn = document.getElementById('confirm-save-btn');
   
   // Load saved settings
-  chrome.storage.sync.get(['geoSettings', 'businessNumberingEnabled', 'savedLocations'], function(result) {
+  chrome.storage.sync.get(['geoSettings', 'businessNumberingEnabled', 'savedLocations', 'hotkeySettings'], function(result) {
     const settings = result.geoSettings || {
       enabled: false,
       latitude: 40.7580,
@@ -34,6 +34,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const businessNumberingEnabled = result.businessNumberingEnabled !== undefined ? result.businessNumberingEnabled : true;
     const savedLocations = result.savedLocations || [];
+    const hotkeySettings = result.hotkeySettings || {
+      enabled: true,
+      key: 'L',
+      ctrl: true,
+      alt: false,
+      shift: true
+    };
+    
+    // Ensure hotkey is enabled by default if not set
+    if (result.hotkeySettings === undefined) {
+      chrome.storage.sync.set({hotkeySettings: hotkeySettings});
+    }
     
     // Update UI with saved settings
     latitudeInput.value = settings.latitude;
@@ -43,6 +55,10 @@ document.addEventListener('DOMContentLoaded', function() {
     businessNumberingToggleModal.checked = businessNumberingEnabled;
     updateStatusText(settings.enabled);
     updateBusinessNumberingStatusModal(businessNumberingEnabled);
+    
+    // Update hotkey settings
+    console.log('Loading hotkey settings:', hotkeySettings);
+    updateHotkeySettings(hotkeySettings);
     
     // Display saved locations (we'll implement this in Step 4)
     displaySavedLocations(savedLocations);
@@ -211,6 +227,38 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
     }.bind(this));
+  });
+  
+  // Hotkey settings elements
+  const hotkeyEnabledToggle = document.getElementById('hotkey-enabled-toggle');
+  const hotkeyKeySelect = document.getElementById('hotkey-key');
+  const hotkeyCtrlCheckbox = document.getElementById('hotkey-ctrl');
+  const hotkeyAltCheckbox = document.getElementById('hotkey-alt');
+  const hotkeyShiftCheckbox = document.getElementById('hotkey-shift');
+  const hotkeyPreviewText = document.getElementById('hotkey-preview-text');
+  const hotkeyIndicator = document.getElementById('hotkey-indicator');
+  
+  // Hotkey toggle event listener
+  hotkeyEnabledToggle.addEventListener('change', function() {
+    saveHotkeySettings({enabled: this.checked});
+  });
+  
+  // Hotkey key select event listener
+  hotkeyKeySelect.addEventListener('change', function() {
+    saveHotkeySettings({key: this.value});
+  });
+  
+  // Hotkey modifier checkboxes event listeners
+  hotkeyCtrlCheckbox.addEventListener('change', function() {
+    saveHotkeySettings({ctrl: this.checked});
+  });
+  
+  hotkeyAltCheckbox.addEventListener('change', function() {
+    saveHotkeySettings({alt: this.checked});
+  });
+  
+  hotkeyShiftCheckbox.addEventListener('change', function() {
+    saveHotkeySettings({shift: this.checked});
   });
   
   // Coordinate inputs event listeners
@@ -547,6 +595,99 @@ document.addEventListener('DOMContentLoaded', function() {
     businessNumberingStatusModal.className = enabled ? 'status-enabled' : 'status-disabled';
   }
   
+  // Hotkey helper functions
+  function updateHotkeySettings(settings) {
+    console.log('Updating hotkey settings:', settings);
+    hotkeyEnabledToggle.checked = settings.enabled;
+    hotkeyKeySelect.value = settings.key;
+    hotkeyCtrlCheckbox.checked = settings.ctrl;
+    hotkeyAltCheckbox.checked = settings.alt;
+    hotkeyShiftCheckbox.checked = settings.shift;
+    updateHotkeyPreview();
+    updateHotkeyIndicator();
+    updatePlatformLabels();
+  }
+  
+  function saveHotkeySettings(updates) {
+    chrome.storage.sync.get(['hotkeySettings'], function(result) {
+      const settings = result.hotkeySettings || {
+        enabled: true,
+        key: 'L',
+        ctrl: true,
+        alt: false,
+        shift: true
+      };
+      
+      // Update with new values
+      const updatedSettings = { ...settings, ...updates };
+      
+      // Save to storage
+      chrome.storage.sync.set({hotkeySettings: updatedSettings});
+      
+      // Update preview and indicator
+      updateHotkeyPreview();
+      updateHotkeyIndicator();
+    });
+  }
+  
+  function updateHotkeyPreview() {
+    const key = hotkeyKeySelect.value;
+    const ctrl = hotkeyCtrlCheckbox.checked;
+    const alt = hotkeyAltCheckbox.checked;
+    const shift = hotkeyShiftCheckbox.checked;
+    
+    // Detect if user is on Mac
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    
+    const modifiers = [];
+    if (ctrl) modifiers.push(isMac ? 'Cmd' : 'Ctrl');
+    if (alt) modifiers.push('Alt');
+    if (shift) modifiers.push('Shift');
+    
+    const preview = modifiers.length > 0 ? `${modifiers.join('+')}+${key}` : key;
+    hotkeyPreviewText.textContent = preview;
+  }
+  
+  function updateHotkeyIndicator() {
+    const key = hotkeyKeySelect.value;
+    const ctrl = hotkeyCtrlCheckbox.checked;
+    const alt = hotkeyAltCheckbox.checked;
+    const shift = hotkeyShiftCheckbox.checked;
+    const enabled = hotkeyEnabledToggle.checked;
+    
+    // Detect if user is on Mac
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    
+    const modifiers = [];
+    if (ctrl) modifiers.push(isMac ? 'Cmd' : 'Ctrl');
+    if (alt) modifiers.push('Alt');
+    if (shift) modifiers.push('Shift');
+    
+    const preview = modifiers.length > 0 ? `${modifiers.join('+')}+${key}` : key;
+    hotkeyIndicator.textContent = preview;
+    
+    // Show/hide indicator based on enabled state
+    if (enabled) {
+      hotkeyIndicator.style.display = 'inline-block';
+      hotkeyIndicator.style.opacity = '1';
+    } else {
+      hotkeyIndicator.style.display = 'inline-block';
+      hotkeyIndicator.style.opacity = '0.5';
+    }
+  }
+  
+  function updatePlatformLabels() {
+    // Detect if user is on Mac
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const ctrlLabel = document.getElementById('ctrl-label');
+    
+    if (isMac && ctrlLabel) {
+      ctrlLabel.textContent = 'Cmd (Ctrl)';
+    } else if (ctrlLabel) {
+      ctrlLabel.textContent = 'Ctrl';
+    }
+  }
+  
   // Dynamic height adjustment function
   function adjustBodyHeight() {
     const body = document.body;
@@ -787,7 +928,58 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Delete a saved location
   function deleteLocation(locationToDelete) {
-    if (confirm('Are you sure you want to delete this saved location?')) {
+    // Show custom delete confirmation modal
+    showDeleteConfirmationModal(locationToDelete);
+  }
+  
+  // Show delete confirmation modal
+  function showDeleteConfirmationModal(locationToDelete) {
+    // Create modal HTML
+    const modalHTML = `
+      <div id="delete-confirmation-modal" class="modal-overlay" style="display: flex;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Delete Location</h3>
+            <button id="close-delete-modal-btn" class="close-modal-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p>Are you sure you want to delete "<strong>${locationToDelete.name}</strong>"?</p>
+            <p style="font-size: 12px; color: #64748b; margin-top: 8px;">
+              This action cannot be undone.
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button id="cancel-delete-btn" class="modal-btn secondary">Cancel</button>
+            <button id="confirm-delete-btn" class="modal-btn primary">Delete</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Get modal elements
+    const modal = document.getElementById('delete-confirmation-modal');
+    const closeBtn = document.getElementById('close-delete-modal-btn');
+    const cancelBtn = document.getElementById('cancel-delete-btn');
+    const confirmBtn = document.getElementById('confirm-delete-btn');
+    
+    // Close modal function
+    function closeModal() {
+      modal.remove();
+    }
+    
+    // Event listeners
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    
+    // Confirm delete
+    confirmBtn.addEventListener('click', function() {
       chrome.storage.sync.get(['savedLocations'], function(result) {
         const savedLocations = result.savedLocations || [];
         
@@ -802,18 +994,48 @@ document.addEventListener('DOMContentLoaded', function() {
           savedLocations.splice(indexToDelete, 1);
           
           chrome.storage.sync.set({savedLocations: savedLocations}, function() {
-  
             displaySavedLocations(savedLocations);
+            closeModal();
           });
         }
       });
-    }
+    });
+    
+    // Close on escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
   }
   
   // Close suggestions when clicking outside
   document.addEventListener('click', function(event) {
     if (event.target !== locationInput && event.target !== suggestions && !suggestions.contains(event.target)) {
       suggestions.innerHTML = '';
+    }
+  });
+  
+  // Listen for storage changes to update UI when hotkey is used
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'sync' && changes.geoSettings) {
+      const newSettings = changes.geoSettings.newValue;
+      if (newSettings) {
+        // Update the main toggle
+        enableToggle.checked = newSettings.enabled;
+        updateStatusText(newSettings.enabled);
+        
+        // Update coordinates if they changed
+        if (newSettings.latitude !== undefined) {
+          latitudeInput.value = newSettings.latitude;
+        }
+        if (newSettings.longitude !== undefined) {
+          longitudeInput.value = newSettings.longitude;
+        }
+        if (newSettings.location !== undefined) {
+          locationInput.placeholder = newSettings.location;
+        }
+      }
     }
   });
 });
