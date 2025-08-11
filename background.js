@@ -216,12 +216,12 @@ async function applyGeolocation(settings) {
 // Optimized initialization with error handling
 async function initializeExtension() {
   try {
-    console.log('Initializing extension...');
+    // console.log('Initializing extension...');
     const result = await new Promise((resolve) => {
       chrome.storage.sync.get(['geoSettings', 'hotkeySettings'], resolve);
     });
     
-    console.log('Storage result:', result);
+          // console.log('Storage result:', result);
     const settings = result.geoSettings || defaultSettings;
     const hotkeySettings = result.hotkeySettings || defaultHotkeySettings;
     
@@ -232,25 +232,25 @@ async function initializeExtension() {
     }
     
     if (!result.hotkeySettings) {
-      console.log('Setting default hotkey settings...');
+      // console.log('Setting default hotkey settings...');
       await new Promise((resolve) => {
         chrome.storage.sync.set({hotkeySettings: defaultHotkeySettings}, resolve);
       });
-      console.log('Default hotkey settings saved');
-    } else {
-      console.log('Hotkey settings already exist:', result.hotkeySettings);
-    }
+      // console.log('Default hotkey settings saved');
+          } else {
+        // console.log('Hotkey settings already exist:', result.hotkeySettings);
+      }
     
     // Check if commands are properly registered
     chrome.commands.getAll((commands) => {
-      console.log('Available commands:', commands);
+      // console.log('Available commands:', commands);
       
       // Ensure the toggle command exists
       const toggleCommand = commands.find(cmd => cmd.name === 'toggle-location-spoofing');
       if (!toggleCommand) {
         console.warn('Toggle command not found! This might cause hotkey issues.');
       } else {
-        console.log('Toggle command found:', toggleCommand);
+        // console.log('Toggle command found:', toggleCommand);
       }
     });
     
@@ -269,7 +269,7 @@ async function initializeExtension() {
 
 // Initialize on install
 chrome.runtime.onInstalled.addListener((details) => {
-  console.log('Extension installed/updated:', details.reason);
+      // console.log('Extension installed/updated:', details.reason);
   
   // Add a small delay to ensure commands are registered
   setTimeout(() => {
@@ -334,9 +334,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Hotkey command listener
 chrome.commands.onCommand.addListener(async (command) => {
-  console.log('Command received:', command);
+        // console.log('Command received:', command);
   if (command === 'toggle-location-spoofing') {
-    console.log('Toggle command executed successfully');
+          // console.log('Toggle command executed successfully');
     try {
       const result = await new Promise((resolve) => {
         chrome.storage.sync.get(['geoSettings', 'hotkeySettings'], resolve);
@@ -345,7 +345,7 @@ chrome.commands.onCommand.addListener(async (command) => {
       const settings = result.geoSettings || defaultSettings;
       const hotkeySettings = result.hotkeySettings || defaultHotkeySettings;
       
-      console.log('Hotkey settings:', hotkeySettings);
+              // console.log('Hotkey settings:', hotkeySettings);
       // Only toggle if hotkey is enabled
       if (hotkeySettings.enabled) {
         const newEnabled = !settings.enabled;

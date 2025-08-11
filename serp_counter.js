@@ -3,10 +3,10 @@
 
 // Global flag to prevent multiple initializations
 if (window.serpCounterInitialized) {
-    console.log('[SERP Counter] Already initialized, skipping');
+    // console.log('[SERP Counter] Already initialized, skipping');
 } else {
     window.serpCounterInitialized = true;
-    console.log('[SERP Counter] Initializing...');
+    // console.log('[SERP Counter] Initializing...');
 
     // Vanilla JavaScript QueryString function
     function getQueryString(name) {
@@ -37,7 +37,7 @@ if (window.serpCounterInitialized) {
     var renderCounterHtml = function() {
         // First check if we're on a Google search page
         if (!isGoogleSearchPage()) {
-            console.log('[SERP Counter] Not a Google search page, skipping');
+            // console.log('[SERP Counter] Not a Google search page, skipping');
             return;
         }
         
@@ -46,14 +46,14 @@ if (window.serpCounterInitialized) {
             serpNumberingEnabled: true
         }, function(settings) {
             if (!settings.serpNumberingEnabled) {
-                console.log('[SERP Counter] SERP numbering is disabled, skipping');
+                // console.log('[SERP Counter] SERP numbering is disabled, skipping');
                 return;
             }
             
             // Check if current search type should be excluded
             const currentType = getCurrentSearchType();
             if (currentType === "Images") {
-                console.log('[SERP Counter] Images search detected, skipping numbering');
+                // console.log('[SERP Counter] Images search detected, skipping numbering');
                 return;
             }
             
@@ -73,26 +73,26 @@ if (window.serpCounterInitialized) {
         // Use vanilla JavaScript instead of jQuery
         const headings = document.querySelectorAll("h3[class]:not(table h3):not(ul h3):not(li h3):not(title-with-lhs-icon h3):not(div.related-question-pair h3):not(g-section-with-header h3)");
         
-        console.log('[SERP Counter] Found headings:', headings.length);
-        console.log('[SERP Counter] Current URL:', window.location.href);
+        // console.log('[SERP Counter] Found headings:', headings.length);
+        // console.log('[SERP Counter] Current URL:', window.location.href);
         
         let actualCounter = 0; // Separate counter for actual results
         
         headings.forEach(function(heading, index) {
-            console.log('[SERP Counter] Processing heading', index, 'Text:', heading.textContent.trim().substring(0, 50));
+            // console.log('[SERP Counter] Processing heading', index, 'Text:', heading.textContent.trim().substring(0, 50));
             
             // Skip navigation elements like "Refine results"
             const headingText = heading.textContent.trim().toLowerCase();
-            console.log('[SERP Counter] Heading text (lowercase):', headingText);
+            // console.log('[SERP Counter] Heading text (lowercase):', headingText);
             
             // Only skip actual navigation elements, not search results
             if (headingText === 'refine results' || headingText === 'map') {
-                console.log('[SERP Counter] Skipping navigation element:', headingText);
+                // console.log('[SERP Counter] Skipping navigation element:', headingText);
                 return;
             }
             
             actualCounter++; // Only increment for actual results
-            console.log('[SERP Counter] Using counter:', actualCounter, 'for heading');
+            // console.log('[SERP Counter] Using counter:', actualCounter, 'for heading');
             
             // Check if counter already exists
             if (heading.querySelector(".gtrack-counter") === null) {
@@ -100,9 +100,9 @@ if (window.serpCounterInitialized) {
                 counterSpan.className = "gtrack-counter";
                 counterSpan.textContent = actualCounter;
                 heading.insertBefore(counterSpan, heading.firstChild);
-                console.log('[SERP Counter] Added counter:', actualCounter, 'to heading');
+                // console.log('[SERP Counter] Added counter:', actualCounter, 'to heading');
             } else {
-                console.log('[SERP Counter] Counter already exists for heading', index);
+                // console.log('[SERP Counter] Counter already exists for heading', index);
             }
         });
     }
@@ -118,12 +118,12 @@ if (window.serpCounterInitialized) {
         // Use the same logic as SERP results - find ad headings
         const adHeadings = document.querySelectorAll('[data-text-ad] [role="heading"][aria-level="3"]:not(table [role="heading"]):not(ul [role="heading"]):not(li [role="heading"]):not(title-with-lhs-icon [role="heading"]):not(div.related-question-pair [role="heading"]):not(g-section-with-header [role="heading"])');
         
-        console.log('[Ad Counter] Found ad headings:', adHeadings.length);
-        console.log('[Ad Counter] Current URL:', window.location.href);
+        // console.log('[Ad Counter] Found ad headings:', adHeadings.length);
+        // console.log('[Ad Counter] Current URL:', window.location.href);
         
         adHeadings.forEach(function(heading, index) {
             var adCounter = index + 1; // Always start from 1 on each page
-            console.log('[Ad Counter] Processing ad heading', index, 'with counter:', adCounter, 'Text:', heading.textContent.trim().substring(0, 50));
+            // console.log('[Ad Counter] Processing ad heading', index, 'with counter:', adCounter, 'Text:', heading.textContent.trim().substring(0, 50));
             
             // Check if counter already exists
             if (heading.querySelector(".gtrack-ad-counter-badge") === null) {
@@ -137,12 +137,12 @@ if (window.serpCounterInitialized) {
                     adBadge.className = "gtrack-ad-counter-badge";
                     adBadge.textContent = adCounter;
                     heading.insertBefore(adBadge, heading.firstChild);
-                    console.log('[Ad Counter] Added counter:', adCounter, 'to ad heading');
+                    // console.log('[Ad Counter] Added counter:', adCounter, 'to ad heading');
                 } else {
-                    console.log('[Ad Counter] Skipped - no sponsored text found');
+                    // console.log('[Ad Counter] Skipped - no sponsored text found');
                 }
             } else {
-                console.log('[Ad Counter] Counter already exists for ad heading', index);
+                // console.log('[Ad Counter] Counter already exists for ad heading', index);
             }
         });
     }
@@ -188,13 +188,13 @@ if (window.serpCounterInitialized) {
         if (namespace === 'sync') {
             // Check if SERP numbering setting changed
             if (changes.serpNumberingEnabled) {
-                console.log('[SERP Counter] SERP numbering setting changed:', changes.serpNumberingEnabled.newValue);
+                // console.log('[SERP Counter] SERP numbering setting changed:', changes.serpNumberingEnabled.newValue);
                 if (changes.serpNumberingEnabled.newValue) {
                     // Setting enabled - run numbering
                     renderCounterHtml();
                 } else {
                     // Setting disabled - remove all counters
-                    console.log('[SERP Counter] Removing all counters - setting disabled');
+                    // console.log('[SERP Counter] Removing all counters - setting disabled');
                     document.querySelectorAll('.gtrack-counter').forEach(el => el.remove());
                     document.querySelectorAll('.gtrack-ad-counter-badge').forEach(el => el.remove());
                 }
@@ -202,7 +202,7 @@ if (window.serpCounterInitialized) {
             
             // Check if show total results changed
             if (changes.showTotalResults) {
-                console.log('[SERP Counter] Show total results setting changed');
+                // console.log('[SERP Counter] Show total results setting changed');
                 showSearchResultCount();
             }
         }
