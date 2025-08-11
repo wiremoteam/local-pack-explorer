@@ -9,6 +9,7 @@ Professional location spoofing tool for Google Maps and Google Search. Local SEO
 - **SERP Result Numbering**: Number Google Search Engine Results Page (SERP) results
 - **Ad Numbering**: Number sponsored ads with orange badges (1, 2, 3...) using same design as regular numbers
 - **Ad Statistics**: Display real-time ad count statistics (top ads, bottom ads, total, organic results)
+- **Search Console Context Menu**: Right-click to copy keywords from Google Search Console tables
 - **Professional UI**: Clean, intuitive interface for developers and SEO professionals
 - **Real-time Toggle**: Enable/disable features instantly
 - **Precise Coordinates**: Enter exact latitude/longitude or use preset locations
@@ -40,6 +41,14 @@ Professional location spoofing tool for Google Maps and Google Search. Local SEO
 4. Sponsored ads will be numbered with orange badges (1, 2, 3...)
 5. Ad statistics will be displayed in a fixed position box
 
+### Search Console Context Menu
+1. Navigate to Google Search Console (https://search.google.com/search-console/)
+2. Go to any page with keyword tables (Performance report, etc.)
+3. Right-click on any keyword row
+4. Select "Copy: [keyword]" from the context menu
+5. The keyword will be copied to your clipboard
+6. Visual feedback shows the copied keyword
+
 ## File Structure
 
 ```
@@ -47,8 +56,11 @@ local-pack-gps/
 ├── manifest.json          # Extension manifest
 ├── background.js          # Background script for header modification
 ├── maps_counter.js        # Content script for Maps Result numbering
+├── serp_counter.js        # Content script for SERP Result numbering
+├── search_console_context.js # Content script for Search Console context menu
 ├── popup.html            # Extension popup interface
 ├── popup.js              # Popup functionality
+├── test_search_console.html # Test page for Search Console functionality
 ├── img/                  # Extension icons
 │   ├── icon16.png
 │   ├── icon48.png
@@ -71,8 +83,9 @@ No build process required - this is a vanilla JavaScript extension.
 3. Test Maps Result numbering on Google Maps search results
 4. Test SERP Result numbering on Google Search results
 5. Test Ad numbering on sponsored content
-6. Verify popup functionality
-7. Use `test_ad_numbering.html` to test ad numbering functionality
+6. Test Search Console context menu using `test_search_console.html`
+7. Verify popup functionality
+8. Use `test_ad_numbering.html` to test ad numbering functionality
 
 ## Permissions
 

@@ -6,6 +6,13 @@ const defaultSettings = {
   location: "Times Square, New York, NY, USA"
 };
 
+// Context menu state
+let contextMenuInfo = {
+  keyword: null,
+  tabId: null,
+  isRebuilding: false // Flag to prevent infinite loops during rebuild
+};
+
 // Default hotkey settings
 const defaultHotkeySettings = {
   enabled: true,
@@ -434,3 +441,172 @@ chrome.runtime.onSuspend.addListener(() => {
     clearTimeout(storageChangeTimeout);
   }
 });
+
+// ===== SEARCH CONSOLE CONTEXT MENU FUNCTIONALITY =====
+
+// Initialize context menu on extension startup
+chrome.runtime.onStartup.addListener(() => {
+  createContextMenu();
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  createContextMenu();
+});
+
+// Create the context menu
+function createContextMenu() {
+  // Remove existing menu if it exists
+  chrome.contextMenus.removeAll(() => {
+    // Create the context menu item
+    chrome.contextMenus.create({
+      id: 'copy-keyword',
+      title: 'Copy Keyword',
+      contexts: ['all'],
+      documentUrlPatterns: ['https://search.google.com/search-console/*'],
+      visible: false // Hidden by default, will be shown when keyword is detected
+    });
+  });
+}
+
+// Listen for messages from content script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'keyword-detected') {
+    // Store keyword info for context menu
+    contextMenuInfo.keyword = request.keyword;
+    contextMenuInfo.tabId = sender.tab.id;
+    contextMenuInfo.isRebuilding = true;
+    
+    // Update context menu title with the keyword
+    chrome.contextMenus.update('copy-keyword', {
+      title: `Copy: "${request.keyword}"`,
+      visible: true
+    }, () => {
+      // Reset rebuilding flag after menu update
+      setTimeout(() => {
+        contextMenuInfo.isRebuilding = false;
+      }, 100);
+    });
+    
+    sendResponse({ success: true });
+  } else if (request.action === 'keyword-copied') {
+    // Hide the context menu after copying
+    chrome.contextMenus.update('copy-keyword', {
+      visible: false
+    });
+    
+    // Clear stored keyword info
+    contextMenuInfo.keyword = null;
+    contextMenuInfo.tabId = null;
+    contextMenuInfo.isRebuilding = false;
+    
+    sendResponse({ success: true });
+  }
+});
+
+// Handle context menu clicks
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'copy-keyword' && contextMenuInfo.keyword) {
+    // Copy the keyword to clipboard
+    copyKeywordToClipboard(contextMenuInfo.keyword, tab.id);
+  }
+});
+
+// Copy keyword to clipboard
+async function copyKeywordToClipboard(keyword, tabId) {
+  try {
+    // Execute script in the tab to copy to clipboard
+    await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      func: (textToCopy) => {
+        // Modern clipboard API
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(textToCopy).then(() => {
+            // Show success feedback
+            showCopyFeedback(textToCopy);
+          }).catch(() => {
+            // Fallback for older browsers
+            fallbackCopy(textToCopy);
+          });
+        } else {
+          // Fallback for older browsers
+          fallbackCopy(textToCopy);
+        }
+        
+        function fallbackCopy(text) {
+          const textArea = document.createElement('textarea');
+          textArea.value = text;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-999999px';
+          textArea.style.top = '-999999px';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          
+          try {
+            document.execCommand('copy');
+            showCopyFeedback(text);
+          } catch (error) {
+            console.error('Fallback copy failed:', error);
+          }
+          
+          document.body.removeChild(textArea);
+        }
+        
+        function showCopyFeedback(keyword) {
+          // Create a temporary notification
+          const notification = document.createElement('div');
+          notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-family: 'Google Sans', Arial, sans-serif;
+            font-size: 14px;
+            z-index: 10001;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease-out;
+          `;
+          notification.textContent = `✓ Copied: "${keyword}"`;
+          
+          // Add animation styles
+          const style = document.createElement('style');
+          style.textContent = `
+            @keyframes slideIn {
+              from { transform: translateX(100%); opacity: 0; }
+              to { transform: translateX(0); opacity: 1; }
+            }
+          `;
+          document.head.appendChild(style);
+          
+          document.body.appendChild(notification);
+          
+          // Remove after 3 seconds
+          setTimeout(() => {
+            if (notification.parentNode) {
+              notification.parentNode.removeChild(notification);
+            }
+            if (style.parentNode) {
+              style.parentNode.removeChild(style);
+            }
+          }, 3000);
+        }
+      },
+      args: [keyword]
+    });
+    
+    // Notify content script that keyword was copied
+    chrome.tabs.sendMessage(tabId, {
+      action: 'keyword-copied',
+      keyword: keyword
+    }).catch(() => {
+      // Content script might not be listening, which is fine
+    });
+    
+    console.log('[GSC Context Menu] Copied keyword:', keyword);
+  } catch (error) {
+    console.error('[GSC Context Menu] Failed to copy keyword:', error);
+  }
+}

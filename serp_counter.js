@@ -147,40 +147,10 @@ if (window.serpCounterInitialized) {
         });
     }
 
-    // Show search result count
+    // Show search result count - REMOVED (no longer needed)
     var showSearchResultCount = function() {
-        chrome.storage.sync.get({
-            showTotalResults: true
-        }, function(settings) {
-            if (!settings.showTotalResults) {
-                return;
-            }
-
-            const observer = new MutationObserver((mutations, obs) => {
-                const toolsButton = document.getElementById('hdtb-tls');
-                
-                if (toolsButton) {
-                    if (toolsButton.getAttribute('aria-expanded') !== 'true') {
-                        toolsButton.click();
-                    } else {
-                        obs.disconnect();
-                    }
-                } else {
-                }
-            });
-
-            const config = {
-                childList: true,
-                subtree: true,
-                attributes: true
-            };
-
-            observer.observe(document.body, config);
-
-            setTimeout(() => {
-                observer.disconnect();
-            }, 10000);
-        });
+        // Function removed - no longer needed
+        return;
     };
 
     // Listen for storage changes
@@ -200,11 +170,10 @@ if (window.serpCounterInitialized) {
                 }
             }
             
-            // Check if show total results changed
-            if (changes.showTotalResults) {
-                // console.log('[SERP Counter] Show total results setting changed');
-                showSearchResultCount();
-            }
+            // Check if show total results changed - REMOVED (no longer needed)
+            // if (changes.showTotalResults) {
+            //     showSearchResultCount();
+            // }
         }
     });
 
@@ -212,10 +181,10 @@ if (window.serpCounterInitialized) {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
             renderCounterHtml();
-            showSearchResultCount();
+            // showSearchResultCount(); // REMOVED - no longer needed
         });
     } else {
         renderCounterHtml();
-        showSearchResultCount();
+        // showSearchResultCount(); // REMOVED - no longer needed
     }
 }
