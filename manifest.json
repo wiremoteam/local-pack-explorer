@@ -41,9 +41,11 @@
     {
       "matches": [
         "https://www.google.com/maps/*",
-        "https://maps.google.com/*"
+        "https://www.google.com/search*",
+        "https://www.google.com/webhp*"
       ],
-      "js": ["maps_counter.js"],
+      "css": ["gtrack-styles.css"],
+      "js": ["serp_counter.js", "maps_counter.js"],
       "run_at": "document_start"
     }
   ]

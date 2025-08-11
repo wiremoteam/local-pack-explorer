@@ -6,6 +6,9 @@ Professional location spoofing tool for Google Maps and Google Search. Local SEO
 
 - **Location Spoofing**: Override browser geolocation for Google services
 - **Maps Result Numbering**: Automatically number Google Maps search results
+- **SERP Result Numbering**: Number Google Search Engine Results Page (SERP) results
+- **Ad Numbering**: Number sponsored ads with orange badges (1, 2, 3...) using same design as regular numbers
+- **Ad Statistics**: Display real-time ad count statistics (top ads, bottom ads, total, organic results)
 - **Professional UI**: Clean, intuitive interface for developers and SEO professionals
 - **Real-time Toggle**: Enable/disable features instantly
 - **Precise Coordinates**: Enter exact latitude/longitude or use preset locations
@@ -29,6 +32,13 @@ Professional location spoofing tool for Google Maps and Google Search. Local SEO
 1. Navigate to Google Maps search results
 2. Toggle "Maps Result Numbering" in the extension popup
 3. Business listings will be automatically numbered
+
+### SERP Result Numbering
+1. Navigate to Google Search Engine Results Page (SERP)
+2. Toggle "SERP Result Numbering" in the extension popup
+3. Organic search results will be numbered with blue badges (#1, #2, #3...)
+4. Sponsored ads will be numbered with orange badges (1, 2, 3...)
+5. Ad statistics will be displayed in a fixed position box
 
 ## File Structure
 
@@ -59,7 +69,10 @@ No build process required - this is a vanilla JavaScript extension.
 1. Load the extension in Chrome
 2. Test location spoofing on Google Maps
 3. Test Maps Result numbering on Google Maps search results
-4. Verify popup functionality
+4. Test SERP Result numbering on Google Search results
+5. Test Ad numbering on sponsored content
+6. Verify popup functionality
+7. Use `test_ad_numbering.html` to test ad numbering functionality
 
 ## Permissions
 

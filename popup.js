@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const confirmSaveBtn = document.getElementById('confirm-save-btn');
   
   // Load saved settings
-  chrome.storage.sync.get(['geoSettings', 'businessNumberingEnabled', 'savedLocations', 'hotkeySettings', 'searchHistory'], function(result) {
+  chrome.storage.sync.get(['geoSettings', 'businessNumberingEnabled', 'serpNumberingEnabled', 'savedLocations', 'hotkeySettings', 'searchHistory'], function(result) {
     const settings = result.geoSettings || {
       enabled: false,
       latitude: 40.7580,
@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     const businessNumberingEnabled = result.businessNumberingEnabled !== undefined ? result.businessNumberingEnabled : true;
+    const serpNumberingEnabled = result.serpNumberingEnabled !== undefined ? result.serpNumberingEnabled : true;
     const savedLocations = result.savedLocations || [];
     const searchHistory = result.searchHistory || [];
     const hotkeySettings = result.hotkeySettings || {
@@ -54,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
     locationInput.placeholder = settings.location || "Enter a location or lat,lng";
     enableToggle.checked = settings.enabled;
     businessNumberingToggleModal.checked = businessNumberingEnabled;
+    serpNumberingToggleModal.checked = serpNumberingEnabled;
     updateStatusText(settings.enabled);
     updateBusinessNumberingStatusModal(businessNumberingEnabled);
     
@@ -286,6 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const optionsModal = document.getElementById('options-modal');
   const closeOptionsModalBtn = document.getElementById('close-options-modal-btn');
   const businessNumberingToggleModal = document.getElementById('business-numbering-toggle-modal');
+  const serpNumberingToggleModal = document.getElementById('serp-numbering-toggle-modal');
   const businessNumberingStatusModal = document.getElementById('business-numbering-status-modal');
   
   optionsIconBtn.addEventListener('click', function(e) {
@@ -318,6 +321,21 @@ document.addEventListener('DOMContentLoaded', function() {
       if (tabs[0] && tabs[0].url && tabs[0].url.includes('google.com/maps')) {
         chrome.tabs.sendMessage(tabs[0].id, {
           action: 'toggleBusinessNumbering',
+          enabled: this.checked
+        });
+      }
+    }.bind(this));
+  });
+  
+  // SERP Result Numbering toggle event listener (modal version)
+  serpNumberingToggleModal.addEventListener('change', function() {
+    chrome.storage.sync.set({serpNumberingEnabled: this.checked});
+    
+    // Send message to content script to enable/disable numbering
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      if (tabs[0] && tabs[0].url && (tabs[0].url.includes('google.com/search') || tabs[0].url.includes('google.com/webhp'))) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          action: 'toggleSerpNumbering',
           enabled: this.checked
         });
       }

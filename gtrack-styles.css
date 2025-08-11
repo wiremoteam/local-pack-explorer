@@ -1,0 +1,202 @@
+/* Google Maps Counter Extension Styles */
+
+/* ───────── Badge Styles ───────── */
+
+/* Organic result badges (blue) */
+.gtrack-counter {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #2563eb !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  margin-right: 5px !important;
+  font-size: 10px !important;
+  border: 2px solid #fff !important;
+  height: 24px !important;
+  width: 24px !important;
+  position: relative !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+
+  vertical-align: text-bottom !important;
+  flex-shrink: 0 !important;
+}
+
+/* Ad badges (orange) */
+.gtrack-ad-counter-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #f97316 !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  border-radius: 4px !important;
+  padding: 0 !important;
+  margin-right: 5px !important;
+  font-size: 10px !important;
+  border: 2px solid #fff !important;
+  height: 20px !important;
+  width: 20px !important;
+  position: relative !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  vertical-align: text-bottom !important;
+  flex-shrink: 0 !important;
+}
+
+/* Maps-specific badge styles (rectangular) */
+.gtrack-counter-maps {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #2563eb !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 1px 6px !important;
+  font-size: 12px !important;
+  border: 1.5px solid #fff !important;
+  height: 20px !important;
+  min-width: 22px !important;
+  z-index: 1000 !important;
+  position: relative !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  transform: none !important;
+}
+
+/* ───────── Ad Counter Box Styles ───────── */
+
+.gtrack-ad-counter {
+  position: fixed !important;
+  top: 120px !important;
+  left: 5px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #333 !important;
+  padding: 12px 16px !important;
+  border-radius: 12px !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  z-index: 10000 !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12) !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  min-width: 160px !important;
+  max-width: 200px !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.gtrack-ad-counter-title {
+  margin-bottom: 12px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  border-bottom: 1px solid rgba(0,0,0,0.1) !important;
+  padding-bottom: 8px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.gtrack-close-btn {
+  background: none !important;
+  border: none !important;
+  color: #6b7280 !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  width: 20px !important;
+  height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  transition: all 0.2s ease !important;
+}
+
+.gtrack-close-btn:hover {
+  background: rgba(0,0,0,0.1) !important;
+  color: #374151 !important;
+}
+
+.gtrack-ad-counter-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  margin-bottom: 6px !important;
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+  color: #4b5563 !important;
+}
+
+.gtrack-ad-counter-row:last-child {
+  margin-bottom: 0 !important;
+}
+
+.gtrack-ad-counter-row-total {
+  border-top: 1px solid rgba(0,0,0,0.1) !important;
+  padding-top: 6px !important;
+  margin-top: 4px !important;
+}
+
+.gtrack-ad-counter-value {
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+}
+
+/* ───────── Wrapper Styles ───────── */
+
+.gtrack-wrap {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  vertical-align: middle !important;
+}
+
+.gtrack-wrapper {
+  display: inline-flex !important;
+  align-items: center !important;
+  direction: ltr !important;
+  transform: none !important;
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+  unicode-bidi: normal !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
+}
+
+
+
+/* ───────── Utility Classes ───────── */
+
+.gtrack-hidden {
+  display: none !important;
+}
+
+.gtrack-visible {
+  display: block !important;
+}
+
+/* ───────── Responsive Adjustments ───────── */
+
+@media (max-width: 768px) {
+  .gtrack-ad-counter {
+    top: 80px !important;
+    left: 2px !important;
+    min-width: 120px !important;
+    max-width: 150px !important;
+    font-size: 10px !important;
+    padding: 10px 8px !important;
+  }
+  
+  .gtrack-counter,
+  .gtrack-ad-counter-badge {
+    height: 20px !important;
+    width: 20px !important;
+    font-size: 10px !important;
+    
+  }
+}
