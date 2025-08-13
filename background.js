@@ -10,7 +10,7 @@ const defaultSettings = {
 let contextMenuInfo = {
   keyword: null,
   tabId: null,
-  isRebuilding: false // Flag to prevent infinite loops during rebuild
+  domain: null
 };
 
 // Default hotkey settings
@@ -337,6 +337,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({success: true});
     return true;
   }
+  
+  if (request.action === 'apply-coordinates-from-gtrack') {
+    console.log('[Background] Received coordinates from GTrack:', request.coordinates);
+    
+    // Apply the coordinates immediately
+    const newSettings = {
+      enabled: true,
+      latitude: request.coordinates.latitude,
+      longitude: request.coordinates.longitude,
+      location: request.location || `GTrack: ${request.coordinates.latitude},${request.coordinates.longitude}`
+    };
+    
+    // Save to storage and apply
+    chrome.storage.sync.set({geoSettings: newSettings}, function() {
+      console.log('[Background] GTrack coordinates saved to storage');
+      
+      // Apply the geolocation settings
+      applyGeolocation(newSettings);
+      
+      // Send success response
+      sendResponse({success: true, message: 'Coordinates applied successfully'});
+    });
+    
+    return true; // Keep the message channel open
+  }
 });
 
 // Hotkey command listener
@@ -457,7 +482,7 @@ chrome.runtime.onInstalled.addListener(() => {
 function createContextMenu() {
   // Remove existing menu if it exists
   chrome.contextMenus.removeAll(() => {
-    // Create the context menu item
+    // Create the context menu item for Search Console
     chrome.contextMenus.create({
       id: 'copy-keyword',
       title: 'Copy Keyword',
@@ -465,26 +490,50 @@ function createContextMenu() {
       documentUrlPatterns: ['https://search.google.com/search-console/*'],
       visible: false // Hidden by default, will be shown when keyword is detected
     });
+    
+    // Create the context menu item for website highlighting
+    chrome.contextMenus.create({
+      id: 'highlight-website',
+      title: 'Highlight results from this website',
+      contexts: ['all'],
+      documentUrlPatterns: ['https://www.google.com/search*'],
+      visible: false // Hidden by default, will be shown when domain is detected
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('[Website Highlight] Error creating context menu:', chrome.runtime.lastError);
+      } else {
+        console.log('[Website Highlight] Context menu created successfully');
+      }
+    });
   });
 }
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'keyword-detected') {
+  if (request.action === 'test-background-connection') {
+    console.log('[Website Highlight] Background script received test message');
+    sendResponse({ success: true, message: 'Background script is responding' });
+  } else if (request.action === 'preload-keyword') {
+    // Pre-load keyword for faster context menu response
+    contextMenuInfo.keyword = request.keyword;
+    contextMenuInfo.tabId = sender.tab.id;
+    
+    // Update context menu immediately with the pre-loaded keyword
+    chrome.contextMenus.update('copy-keyword', {
+      title: `Copy: "${request.keyword}"`,
+      visible: true
+    });
+    
+    sendResponse({ success: true });
+  } else if (request.action === 'keyword-detected') {
     // Store keyword info for context menu
     contextMenuInfo.keyword = request.keyword;
     contextMenuInfo.tabId = sender.tab.id;
-    contextMenuInfo.isRebuilding = true;
     
     // Update context menu title with the keyword
     chrome.contextMenus.update('copy-keyword', {
       title: `Copy: "${request.keyword}"`,
       visible: true
-    }, () => {
-      // Reset rebuilding flag after menu update
-      setTimeout(() => {
-        contextMenuInfo.isRebuilding = false;
-      }, 100);
     });
     
     sendResponse({ success: true });
@@ -497,7 +546,61 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Clear stored keyword info
     contextMenuInfo.keyword = null;
     contextMenuInfo.tabId = null;
-    contextMenuInfo.isRebuilding = false;
+    
+    sendResponse({ success: true });
+  } else if (request.action === 'website-domain-detected') {
+    console.log('[Website Highlight] Received domain detection:', request.domain);
+    
+    // Store domain info for website highlighting (same approach as Search Console)
+    contextMenuInfo.domain = request.domain;
+    contextMenuInfo.tabId = sender.tab.id;
+    
+    // Update context menu immediately (same as Search Console)
+    chrome.contextMenus.update('highlight-website', {
+      title: `Highlight results from ${request.domain}`,
+      visible: true
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('[Website Highlight] Error updating context menu:', chrome.runtime.lastError);
+        // Fallback: try to recreate the menu
+        setTimeout(() => {
+          chrome.contextMenus.update('highlight-website', {
+            title: `Highlight results from ${request.domain}`,
+            visible: true
+          });
+        }, 100);
+      } else {
+        console.log('[Website Highlight] Context menu updated successfully for domain:', request.domain);
+      }
+    });
+    
+    sendResponse({ success: true });
+  } else if (request.action === 'show-website-highlight-menu') {
+    // Store domain info for website highlighting
+    contextMenuInfo.domain = request.domain;
+    contextMenuInfo.tabId = sender.tab.id;
+    
+    // Check if we're at the domain limit
+    chrome.storage.sync.get(['highlightedDomains'], function(result) {
+      const highlightedDomains = result.highlightedDomains || {};
+      const existingDomains = Object.keys(highlightedDomains);
+      const isAlreadyHighlighted = highlightedDomains[request.domain];
+      
+      let menuTitle;
+      if (existingDomains.length >= 3 && !isAlreadyHighlighted) {
+        menuTitle = `Maximum 3 domains reached (${request.domain})`;
+      } else if (isAlreadyHighlighted) {
+        menuTitle = `Already highlighted: ${request.domain}`;
+      } else {
+        menuTitle = `Highlight results from ${request.domain}`;
+      }
+      
+      // Update context menu for website highlighting
+      chrome.contextMenus.update('highlight-website', {
+        title: menuTitle,
+        visible: true
+      });
+    });
     
     sendResponse({ success: true });
   }
@@ -508,6 +611,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'copy-keyword' && contextMenuInfo.keyword) {
     // Copy the keyword to clipboard
     copyKeywordToClipboard(contextMenuInfo.keyword, tab.id);
+  } else if (info.menuItemId === 'highlight-website' && contextMenuInfo.domain) {
+    // Highlight the website (same simple approach as Search Console)
+    highlightWebsite(contextMenuInfo.domain, tab.id);
   }
 });
 
@@ -553,33 +659,10 @@ async function copyKeywordToClipboard(keyword, tabId) {
         }
         
         function showCopyFeedback(keyword) {
-          // Create a temporary notification
+          // Create a temporary notification using CSS class
           const notification = document.createElement('div');
-          notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #4caf50;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 4px;
-            font-family: 'Google Sans', Arial, sans-serif;
-            font-size: 14px;
-            z-index: 10001;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            animation: slideIn 0.3s ease-out;
-          `;
+          notification.className = 'gtrack-copy-notification';
           notification.textContent = `✓ Copied: "${keyword}"`;
-          
-          // Add animation styles
-          const style = document.createElement('style');
-          style.textContent = `
-            @keyframes slideIn {
-              from { transform: translateX(100%); opacity: 0; }
-              to { transform: translateX(0); opacity: 1; }
-            }
-          `;
-          document.head.appendChild(style);
           
           document.body.appendChild(notification);
           
@@ -587,9 +670,6 @@ async function copyKeywordToClipboard(keyword, tabId) {
           setTimeout(() => {
             if (notification.parentNode) {
               notification.parentNode.removeChild(notification);
-            }
-            if (style.parentNode) {
-              style.parentNode.removeChild(style);
             }
           }, 3000);
         }
@@ -608,5 +688,29 @@ async function copyKeywordToClipboard(keyword, tabId) {
     console.log('[GSC Context Menu] Copied keyword:', keyword);
   } catch (error) {
     console.error('[GSC Context Menu] Failed to copy keyword:', error);
+  }
+}
+
+// Highlight website function
+async function highlightWebsite(domain, tabId) {
+  try {
+    // Always send message to content script to handle highlighting and limit checking
+    await chrome.tabs.sendMessage(tabId, {
+      action: 'highlight-website',
+      domain: domain
+    });
+    
+    // Hide the context menu after attempting to highlight
+    chrome.contextMenus.update('highlight-website', {
+      visible: false
+    });
+    
+    // Clear stored domain info
+    contextMenuInfo.domain = null;
+    contextMenuInfo.tabId = null;
+    
+    console.log('[Website Highlight] Sent highlight request for website:', domain);
+  } catch (error) {
+    console.error('[Website Highlight] Failed to send highlight request:', error);
   }
 }

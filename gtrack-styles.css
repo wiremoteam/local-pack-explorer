@@ -180,6 +180,236 @@
   display: block !important;
 }
 
+/* ───────── Website Highlighting Styles ───────── */
+
+/* Highlighted website links */
+.gtrack-website-highlight {
+  border: 2px solid #4CAF50 !important;
+  border-radius: 4px !important;
+  position: relative !important;
+  padding: 2px 4px !important;
+  margin: -2px -4px !important;
+  display: inline-block !important;
+  /* Ensure proper positioning context for the remove button */
+  overflow: visible !important;
+  /* Reset any conflicting positioning */
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+}
+
+/* Remove highlight button */
+.gtrack-remove-highlight {
+  position: absolute !important;
+  width: 17px !important;
+  height: 17px !important;
+  background: #f44336 !important;
+  color: white !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
+  transition: all 0.2s !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4) !important;
+  border: 2px solid rgba(255,255,255,0.8) !important;
+  /* Ensure it's always clickable */
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  /* Add a subtle glow effect */
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3)) !important;
+  /* Ensure it's visible and clickable */
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* SVG icon styling */
+.gtrack-remove-highlight svg {
+  width: 10px !important;
+  height: 10px !important;
+  fill: currentColor !important;
+}
+
+.gtrack-remove-highlight:hover {
+  background: #d32f2f !important;
+  transform: scale(1.2) !important;
+}
+
+/* ───────── Copy Feedback Notification Styles ───────── */
+
+/* Copy feedback notification */
+.gtrack-copy-notification {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  background: #4caf50 !important;
+  color: white !important;
+  padding: 12px 20px !important;
+  border-radius: 4px !important;
+  font-family: 'Google Sans', Arial, sans-serif !important;
+  font-size: 14px !important;
+  z-index: 10001 !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
+  animation: gtrack-slideIn 0.3s ease-out !important;
+}
+
+/* Simple notification (for website highlighting) */
+.gtrack-simple-notification {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  color: white !important;
+  padding: 12px 20px !important;
+  border-radius: 4px !important;
+  font-family: 'Google Sans', Arial, sans-serif !important;
+  font-size: 14px !important;
+  z-index: 10001 !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
+  animation: gtrack-slideIn 0.3s ease-out !important;
+}
+
+/* Slide-in animation for copy notification */
+@keyframes gtrack-slideIn {
+  from { 
+    transform: translateX(100%); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateX(0); 
+    opacity: 1; 
+  }
+}
+
+/* ───────── Notification Styles ───────── */
+
+.gtrack-notification {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  max-width: 400px !important;
+  background: #ffffff !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+  border: 1px solid rgba(0,0,0,0.1) !important;
+  z-index: 100000 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  transform: translateX(100%) !important;
+  opacity: 0 !important;
+  transition: all 0.3s ease-out !important;
+  overflow: hidden !important;
+}
+
+.gtrack-notification-show {
+  transform: translateX(0) !important;
+  opacity: 1 !important;
+}
+
+.gtrack-notification-content {
+  display: flex !important;
+  align-items: flex-start !important;
+  padding: 16px !important;
+  gap: 12px !important;
+}
+
+.gtrack-notification-message {
+  flex: 1 !important;
+  color: #333 !important;
+}
+
+.gtrack-notification-close {
+  background: none !important;
+  border: none !important;
+  color: #666 !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  width: 20px !important;
+  height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  transition: all 0.2s !important;
+  flex-shrink: 0 !important;
+}
+
+.gtrack-notification-close:hover {
+  background: rgba(0,0,0,0.1) !important;
+  color: #333 !important;
+}
+
+/* Notification types */
+.gtrack-notification-info {
+  border-left: 4px solid #2196F3 !important;
+}
+
+/* ───────── GTrack Coordinates Styles ───────── */
+
+/* GTrack copy notification */
+.gtrack-copy-notification {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  background-color: #10b981 !important;
+  color: white !important;
+  padding: 12px 16px !important;
+  border-radius: 8px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  z-index: 999999 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  animation: gtrack-slide-in 0.3s ease-out !important;
+}
+
+
+
+/* GTrack slide-in animation */
+@keyframes gtrack-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Google Maps notification */
+.gtrack-maps-notification {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  background-color: #10b981 !important;
+  color: white !important;
+  padding: 12px 16px !important;
+  border-radius: 8px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  z-index: 999999 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  animation: gtrack-slide-in 0.3s ease-out !important;
+}
+
+.gtrack-notification-success {
+  border-left: 4px solid #4CAF50 !important;
+}
+
+.gtrack-notification-warning {
+  border-left: 4px solid #FF9800 !important;
+}
+
+.gtrack-notification-error {
+  border-left: 4px solid #f44336 !important;
+}
+
 /* ───────── Responsive Adjustments ───────── */
 
 @media (max-width: 768px) {
@@ -198,5 +428,17 @@
     width: 20px !important;
     font-size: 10px !important;
     
+  }
+  
+  .gtrack-notification {
+    top: 10px !important;
+    right: 10px !important;
+    left: 10px !important;
+    max-width: none !important;
+    font-size: 13px !important;
+  }
+  
+  .gtrack-notification-content {
+    padding: 12px !important;
   }
 }
