@@ -381,7 +381,7 @@
   }
 }
 
-/* Google Maps notification */
+/* Google Maps right-click notification */
 .gtrack-maps-notification {
   position: fixed !important;
   top: 20px !important;

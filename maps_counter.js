@@ -488,38 +488,40 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
     });
 }
 
-/* ───────── Google Maps Clipboard Monitoring ───────── */
+/* ───────── Google Maps Right-Click Panel Monitoring ───────── */
 
-// Clipboard monitoring for Google Maps
-let lastClipboardText = '';
+// Right-click panel monitoring for Google Maps
 let lastProcessedCoordinates = null;
-let clipboardCheckInterval = null;
 let isMonitoringStarted = false;
-let isInitialStartup = true;
-let isMonitoringReady = false; // Track if monitoring is ready to process new content
 
 
 
-// Function to extract GPS coordinates from text (specific for Google Maps)
-function extractGPSCoordinates(text) {
-  if (!text || text.length > 100) {
-    return null; // Skip if text is too long or empty
+// Function to extract GPS coordinates from Google Maps right-click panel
+function extractCoordinatesFromMapsPanel() {
+  // Look for the coordinates in the right-click context menu
+  // Google Maps shows coordinates in format like "53.391290814105766, -6.410091393871952"
+  
+  // Try to find coordinates in the context menu
+  const contextMenu = document.querySelector('[role="menu"], .context-menu, [data-js-context-menu]');
+  if (!contextMenu) {
+    return null;
   }
   
-  console.log('[Maps Clipboard] Checking text for GPS coordinates:', text);
+  // Look for text that contains coordinates
+  const menuText = contextMenu.textContent || '';
+  console.log('[Maps Right-Click] Checking context menu text:', menuText);
   
-  // Specific pattern for GPS coordinates: latitude,longitude
-  // Examples: 53.391290814105766, -6.410091393871952 or 53.391, -6.410
+  // Pattern for GPS coordinates: latitude,longitude
   const gpsPattern = /(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/;
+  const match = menuText.match(gpsPattern);
   
-  const match = text.match(gpsPattern);
   if (match) {
     const lat = parseFloat(match[1]);
     const lng = parseFloat(match[2]);
     
-    // Basic validation - latitude must be between -90 and 90, longitude between -180 and 180
+    // Basic validation
     if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && !isNaN(lat) && !isNaN(lng)) {
-      console.log('[Maps Clipboard] GPS coordinates found:', { latitude: lat, longitude: lng });
+      console.log('[Maps Right-Click] GPS coordinates found:', { latitude: lat, longitude: lng });
       return {
         latitude: lat,
         longitude: lng
@@ -537,7 +539,7 @@ async function applyCoordinatesToExtension(coordinates) {
   try {
     // Check if extension context is still valid
     if (!chrome.runtime?.id) {
-      console.log('[Maps Clipboard] Extension context invalid, skipping coordinate application');
+      console.log('[Maps Right-Click] Extension context invalid, skipping coordinate application');
       return;
     }
     
@@ -548,50 +550,49 @@ async function applyCoordinatesToExtension(coordinates) {
       location: `Google Maps: ${coordText}`
     });
     
-    console.log('[Maps Clipboard] Extension response:', response);
+    console.log('[Maps Right-Click] Extension response:', response);
     
     showMapsNotification(coordText, 'applied');
     
   } catch (error) {
     if (error.message.includes('Extension context invalidated')) {
-      console.log('[Maps Clipboard] Extension context invalidated, stopping clipboard monitoring');
-      stopClipboardMonitoring();
+      console.log('[Maps Right-Click] Extension context invalidated');
       return;
     }
-    console.error('[Maps Clipboard] Failed to apply coordinates to extension:', error);
+    console.error('[Maps Right-Click] Failed to apply coordinates to extension:', error);
   }
 }
 
 // Function to show notification for Google Maps
 function showMapsNotification(coordinates, action = 'applied') {
-  console.log('[Maps Clipboard] Showing notification:', coordinates, action);
+  console.log('[Maps Right-Click] Showing notification:', coordinates, action);
   
   const notification = document.createElement('div');
   
   if (action === 'applied') {
     notification.className = 'gtrack-maps-notification';
-    notification.textContent = `✓ Applied from clipboard: ${coordinates}`;
+    notification.textContent = `✓ Applied from Google Maps: ${coordinates}`;
   }
   
-  console.log('[Maps Clipboard] Notification element created:', notification);
-  console.log('[Maps Clipboard] Notification classes:', notification.className);
-  console.log('[Maps Clipboard] Notification text:', notification.textContent);
+  console.log('[Maps Right-Click] Notification element created:', notification);
+  console.log('[Maps Right-Click] Notification classes:', notification.className);
+  console.log('[Maps Right-Click] Notification text:', notification.textContent);
   
   document.body.appendChild(notification);
-  console.log('[Maps Clipboard] Notification added to DOM');
+  console.log('[Maps Right-Click] Notification added to DOM');
   
   // Remove after 4 seconds
   setTimeout(() => {
     if (notification.parentNode) {
       notification.parentNode.removeChild(notification);
-      console.log('[Maps Clipboard] Notification removed from DOM');
+      console.log('[Maps Right-Click] Notification removed from DOM');
     }
   }, 4000);
 }
 
-// Function to check clipboard for GPS coordinates
-async function checkClipboardForCoordinates() {
-  // Only check clipboard if document is focused and tab is active
+// Function to check for coordinates in Google Maps right-click panel
+function checkMapsRightClickPanel() {
+  // Only check if document is focused and tab is active
   if (!document.hasFocus() || document.hidden) {
     return;
   }
@@ -601,71 +602,39 @@ async function checkClipboardForCoordinates() {
     return;
   }
   
-  // Additional check: ensure the window is focused
-  if (!window.focus) {
-    return;
-  }
-  
   try {
-    // Read clipboard text
-    const clipboardText = await navigator.clipboard.readText();
-    
-    // Skip if same as last check or empty
-    if (!clipboardText || clipboardText === lastClipboardText) {
+    // Check if there's a right-click context menu visible
+    const contextMenu = document.querySelector('[role="menu"], .context-menu, [data-js-context-menu]');
+    if (!contextMenu) {
       return;
     }
     
-    // Skip if this is the initial startup (first clipboard check)
-    if (isInitialStartup) {
-      console.log('[Maps Clipboard] Initial startup - skipping first clipboard check');
-      lastClipboardText = clipboardText; // Mark as processed to avoid repeated detection
-      isInitialStartup = false;
+    // Check if the context menu is visible (not hidden)
+    const isVisible = contextMenu.offsetParent !== null || 
+                     contextMenu.style.display !== 'none' || 
+                     contextMenu.style.visibility !== 'hidden';
+    
+    if (!isVisible) {
       return;
     }
     
-    // Skip if monitoring is not ready (we just regained focus and there's existing clipboard content)
-    if (!isMonitoringReady) {
-      console.log('[Maps Clipboard] Monitoring not ready - skipping existing clipboard content');
-      lastClipboardText = clipboardText; // Mark as processed to avoid repeated detection
-      return;
-    }
+    console.log('[Maps Right-Click] Context menu detected, checking for coordinates');
     
-    // Skip if clipboard content is longer than 100 characters
-    if (clipboardText.length > 100) {
-      console.log('[Maps Clipboard] Skipping clipboard content longer than 100 characters:', clipboardText.length);
-      lastClipboardText = clipboardText; // Mark as processed to avoid repeated detection
-      return;
-    }
-    
-    // Skip if clipboard contains console log content
-    if (clipboardText.includes('[Maps Clipboard]') || 
-        clipboardText.includes('Content script loaded') ||
-        clipboardText.includes('Clipboard monitoring started')) {
-      console.log('[Maps Clipboard] Skipping clipboard content that appears to be console logs');
-      lastClipboardText = clipboardText; // Mark as processed to avoid repeated detection
-      return;
-    }
-    
-
-    
-    console.log('[Maps Clipboard] New clipboard content detected:', clipboardText);
-    
-    // Check if clipboard contains GPS coordinates
-    const coordinates = extractGPSCoordinates(clipboardText);
+    // Extract coordinates from the context menu
+    const coordinates = extractCoordinatesFromMapsPanel();
     if (coordinates) {
       // Check if these are the same coordinates we just processed
       if (lastProcessedCoordinates && 
           Math.abs(lastProcessedCoordinates.latitude - coordinates.latitude) < 0.000001 &&
           Math.abs(lastProcessedCoordinates.longitude - coordinates.longitude) < 0.000001) {
-        console.log('[Maps Clipboard] Same coordinates detected, skipping duplicate processing');
-        lastClipboardText = clipboardText; // Mark as processed
+        console.log('[Maps Right-Click] Same coordinates detected, skipping duplicate processing');
         return;
       }
       
-      console.log('[Maps Clipboard] GPS coordinates found in clipboard:', coordinates);
+      console.log('[Maps Right-Click] GPS coordinates found in context menu:', coordinates);
       
       // Apply coordinates to extension
-      await applyCoordinatesToExtension(coordinates);
+      applyCoordinatesToExtension(coordinates);
       
       // Store the processed coordinates to prevent duplicates
       lastProcessedCoordinates = coordinates;
@@ -673,95 +642,84 @@ async function checkClipboardForCoordinates() {
       // Reset the last processed coordinates after 5 seconds to allow new coordinates
       setTimeout(() => {
         lastProcessedCoordinates = null;
-        console.log('[Maps Clipboard] Reset last processed coordinates');
+        console.log('[Maps Right-Click] Reset last processed coordinates');
       }, 5000);
     }
     
-    // Update last clipboard text
-    lastClipboardText = clipboardText;
-    
   } catch (error) {
-    // Only log error if it's not a focus-related error
-    if (!error.message.includes('Document is not focused') && 
-        !error.message.includes('document is not focused')) {
-      console.log('[Maps Clipboard] Clipboard access not available:', error.message);
-    }
+    console.error('[Maps Right-Click] Error checking context menu:', error);
   }
 }
 
-// Function to start clipboard monitoring
-function startClipboardMonitoring() {
+// Function to start right-click panel monitoring
+function startRightClickMonitoring() {
   // Prevent multiple instances
   if (isMonitoringStarted) {
-    console.log('[Maps Clipboard] Clipboard monitoring already started, skipping');
+    console.log('[Maps Right-Click] Right-click monitoring already started, skipping');
     return;
   }
   
   // Only start if document is focused
   if (!document.hasFocus() || document.hidden) {
-    console.log('[Maps Clipboard] Document not focused, not starting clipboard monitoring');
+    console.log('[Maps Right-Click] Document not focused, not starting right-click monitoring');
     return;
   }
   
-  // Check clipboard every 2 seconds
-  clipboardCheckInterval = setInterval(checkClipboardForCoordinates, 2000);
+  // Check for right-click panel every 1 second
+  const checkInterval = setInterval(checkMapsRightClickPanel, 1000);
   isMonitoringStarted = true;
   
-  // Set monitoring as ready after a short delay to allow for initial clipboard check
-  setTimeout(() => {
-    isMonitoringReady = true;
-    console.log('[Maps Clipboard] Clipboard monitoring ready to process new content');
-  }, 1000);
+  console.log('[Maps Right-Click] Right-click panel monitoring started');
   
-  console.log('[Maps Clipboard] Clipboard monitoring started');
+  // Store the interval ID for cleanup
+  window.mapsRightClickInterval = checkInterval;
 }
 
-// Function to stop clipboard monitoring
-function stopClipboardMonitoring() {
-  if (clipboardCheckInterval) {
-    clearInterval(clipboardCheckInterval);
-    clipboardCheckInterval = null;
+// Function to stop right-click panel monitoring
+function stopRightClickMonitoring() {
+  if (window.mapsRightClickInterval) {
+    clearInterval(window.mapsRightClickInterval);
+    window.mapsRightClickInterval = null;
     isMonitoringStarted = false;
-    isMonitoringReady = false; // Reset ready state when stopping
-    console.log('[Maps Clipboard] Clipboard monitoring stopped');
+    console.log('[Maps Right-Click] Right-click panel monitoring stopped');
   }
 }
 
-// Start clipboard monitoring when page loads (with delay to avoid initial clipboard check)
+// Start right-click panel monitoring when page loads
 setTimeout(() => {
-  startClipboardMonitoring();
-}, 3000); // 3 second delay to avoid checking initial clipboard content
+  startRightClickMonitoring();
+}, 2000); // 2 second delay to ensure page is fully loaded
 
 // Stop monitoring when page unloads
-window.addEventListener('beforeunload', stopClipboardMonitoring);
+window.addEventListener('beforeunload', stopRightClickMonitoring);
 
 // Also stop monitoring when tab becomes hidden (to save resources)
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    console.log('[Maps Clipboard] Tab hidden, stopping clipboard monitoring');
-    stopClipboardMonitoring();
+    console.log('[Maps Right-Click] Tab hidden, stopping right-click monitoring');
+    stopRightClickMonitoring();
   } else {
     // Restart monitoring when tab becomes visible again
-    console.log('[Maps Clipboard] Tab visible, restarting clipboard monitoring');
+    console.log('[Maps Right-Click] Tab visible, restarting right-click monitoring');
     setTimeout(() => {
-      startClipboardMonitoring();
+      startRightClickMonitoring();
     }, 500);
   }
 });
 
 // Also handle focus events
 window.addEventListener('focus', () => {
-  console.log('[Maps Clipboard] Window focused, ensuring clipboard monitoring is active');
+  console.log('[Maps Right-Click] Window focused, ensuring right-click monitoring is active');
   if (!isMonitoringStarted) {
     setTimeout(() => {
-      startClipboardMonitoring();
+      startRightClickMonitoring();
     }, 100);
   }
 });
 
 window.addEventListener('blur', () => {
-  console.log('[Maps Clipboard] Window lost focus, stopping clipboard monitoring');
-  stopClipboardMonitoring();
+  console.log('[Maps Right-Click] Window lost focus, stopping right-click monitoring');
+  stopRightClickMonitoring();
 });
 
-console.log('[Maps Clipboard] Google Maps clipboard monitoring ready!');
+console.log('[Maps Right-Click] Google Maps right-click panel monitoring ready!');
