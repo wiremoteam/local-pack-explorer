@@ -1,70 +1,56 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
 
-EXT_DIR="/Users/adriancrismaru/Desktop/programming/local-pack-gps"
-MANIFEST="$EXT_DIR/manifest.json"
+# Extension packaging script for Chrome Web Store
+# This script creates a clean zip file for the extension
 
-if [[ ! -f "$MANIFEST" ]]; then
-  echo "Error: manifest.json not found in $EXT_DIR"
-  exit 1
+echo "🚀 Creating extension package..."
+
+# Set variables
+EXTENSION_NAME="local-pack-gps"
+VERSION=$(grep '"version"' manifest.json | cut -d'"' -f4)
+PACKAGE_NAME="${EXTENSION_NAME}-v${VERSION}.zip"
+
+echo "📦 Extension version: $VERSION"
+echo "📁 Package name: $PACKAGE_NAME"
+
+# Remove existing package if it exists
+if [ -f "$PACKAGE_NAME" ]; then
+    echo "🗑️  Removing existing package: $PACKAGE_NAME"
+    rm "$PACKAGE_NAME"
 fi
 
-# Read version from manifest.json
-VERSION="$(/usr/bin/python3 - <<'PY' "$MANIFEST"
-import json,sys
-path=sys.argv[1]
-d=json.load(open(path))
-print(d.get("version","0.0.0"))
-PY
-)"
+# Create the zip package
+echo "📦 Creating zip package..."
 
-if [[ -z "$VERSION" ]]; then
-  echo "Error: Could not read version from manifest.json"
-  exit 1
+# Files to include in the package
+zip "$PACKAGE_NAME" \
+    manifest.json \
+    background.js \
+    popup.html \
+    popup.js \
+    serp_counter.js \
+    maps_counter.js \
+    search_console_context.js \
+    gtrack_coordinates.js \
+    gtrack-styles.css \
+    img/icon16.png \
+    img/icon48.png \
+    img/icon128.png \
+    img/enabled.png \
+    img/disabled.png
+
+# Check if zip was created successfully
+if [ -f "$PACKAGE_NAME" ]; then
+    echo "✅ Package created successfully: $PACKAGE_NAME"
+    echo "📊 Package size: $(du -h "$PACKAGE_NAME" | cut -f1)"
+    echo ""
+    echo "🎯 Next steps:"
+    echo "   1. Upload $PACKAGE_NAME to Chrome Web Store"
+    echo "   2. Update version in manifest.json if needed"
+    echo "   3. Test the extension thoroughly"
+else
+    echo "❌ Failed to create package!"
+    exit 1
 fi
 
-# Temp build folder
-BUILD_DIR="${EXT_DIR}_build"
-rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR"
-
-echo "• Copying extension files (excluding junk)..."
-rsync -a "$EXT_DIR"/ "$BUILD_DIR"/ \
-  --delete \
-  --exclude ".git/" \
-  --exclude ".github/" \
-  --exclude ".gitignore" \
-  --exclude ".gitattributes" \
-  --exclude ".DS_Store" \
-  --exclude "__MACOSX/" \
-  --exclude "Thumbs.db" \
-  --exclude "._*" \
-  --exclude ".idea/" \
-  --exclude ".vscode/" \
-  --exclude "node_modules/" \
-  --exclude "coverage/" \
-  --exclude "tests/" \
-  --exclude "test/" \
-  --exclude ".cache/" \
-  --exclude "*.log" \
-  --exclude "*.tgz" \
-  --exclude "*.zip"
-
-# Create zip in same folder as extension
-ZIP_NAME="$(basename "$EXT_DIR")-$VERSION.zip"
-ZIP_PATH="$(dirname "$EXT_DIR")/$ZIP_NAME"
-
-echo "• Creating ZIP: $ZIP_PATH"
-export COPYFILE_DISABLE=1
-(
-  cd "$BUILD_DIR"
-  zip -r -9 -X "$ZIP_PATH" . \
-    -x "*.DS_Store" -x "__MACOSX/*" -x "._*"
-)
-
-# Cleanup
-rm -rf "$BUILD_DIR"
-
-echo "• Done!"
-echo "ZIP created at: $ZIP_PATH"
-
+echo "🎉 Extension packaging complete!" 

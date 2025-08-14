@@ -303,7 +303,7 @@ if (window.serpCounterInitialized) {
     function loadHighlightedDomains() {
         chrome.storage.sync.get(['highlightedDomains'], function(result) {
             const newDomains = new Set(Object.keys(result.highlightedDomains || {}));
-            console.log('[Website Highlight] Loaded domains:', Array.from(newDomains));
+    
             
             // Only apply highlights if domains actually changed or if we have domains to highlight
             const domainsChanged = newDomains.size !== highlightedDomains.size || 
@@ -323,32 +323,32 @@ if (window.serpCounterInitialized) {
      */
     function handleWebsiteContextMenu(event) {
         const target = event.target;
-        console.log('[Website Highlight] Right-click detected on:', target.tagName, target.className);
+
         
         const resultContainer = findSearchResultContainer(target);
         
         if (resultContainer) {
-            console.log('[Website Highlight] Found result container:', resultContainer.tagName, resultContainer.className);
+  
             
             try {
                 const domain = extractDomainFromResult(resultContainer);
                 if (domain) {
-                    console.log('[Website Highlight] Domain detected:', domain);
+      
                     
                     // Store the domain for context menu action
                     window.currentHighlightDomain = domain;
                     
                     // Send message to background script to show context menu
                     // Use the same simple approach as Search Console
-                    console.log('[Website Highlight] Sending message to background script for domain:', domain);
+  
                     
                     chrome.runtime.sendMessage({
                         action: 'website-domain-detected',
                         domain: domain
                     }).then(response => {
-                        console.log('[Website Highlight] Message sent successfully, response:', response);
+  
                         if (response && response.success) {
-                            console.log('[Website Highlight] Domain sent to background script:', domain);
+                            
                         }
                     }).catch(error => {
                         // Handle extension context invalidated error gracefully
@@ -359,14 +359,14 @@ if (window.serpCounterInitialized) {
                         }
                     });
                 } else {
-                    console.log('[Website Highlight] No domain found in result container');
+      
                 }
             } catch (error) {
                 console.error('[Website Highlight] Error extracting domain:', error);
                 // Continue execution without crashing
             }
         } else {
-            console.log('[Website Highlight] No result container found for target');
+  
         }
     }
     
@@ -484,7 +484,7 @@ if (window.serpCounterInitialized) {
      */
     function applyHighlights() {
         if (isApplyingHighlights) {
-            console.log('[Website Highlight] Debouncing highlights...');
+  
             return;
         }
         
@@ -649,7 +649,7 @@ if (window.serpCounterInitialized) {
         
         // Direct click handler for the remove button
         removeBtn.addEventListener('click', function(event) {
-            console.log('[Website Highlight] Close button clicked for domain:', domain);
+  
             event.preventDefault();
             event.stopPropagation();
             event.stopImmediatePropagation();
@@ -690,13 +690,13 @@ if (window.serpCounterInitialized) {
      * Handle remove highlight button clicks
      */
     function handleRemoveHighlight(event) {
-        console.log('[Website Highlight] handleRemoveHighlight called, target:', event.target);
+  
         
         // Check if the clicked element is the remove button or contains it
         const removeButton = event.target.closest('.gtrack-remove-highlight');
         if (removeButton) {
             const domain = removeButton.dataset.domain;
-            console.log('[Website Highlight] Removing highlight for domain:', domain);
+  
             removeHighlight(domain);
             event.preventDefault();
             event.stopPropagation();
@@ -709,14 +709,14 @@ if (window.serpCounterInitialized) {
      * Remove highlight for a domain
      */
     function removeHighlight(domain) {
-        console.log('[Website Highlight] Removing highlight for domain:', domain);
+  
         
         chrome.storage.sync.get(['highlightedDomains'], function(result) {
             const storageDomains = result.highlightedDomains || {};
             delete storageDomains[domain];
             
             chrome.storage.sync.set({highlightedDomains: storageDomains}, function() {
-                console.log('[Website Highlight] Highlight removed for domain:', domain);
+      
                 
                 // Update local state immediately - use the global Set
                 highlightedDomains.delete(domain);
@@ -755,14 +755,14 @@ if (window.serpCounterInitialized) {
      * Add highlight for a domain
      */
     function addHighlight(domain) {
-        console.log('[Website Highlight] Adding highlight for domain:', domain);
+  
         
         chrome.storage.sync.get(['highlightedDomains'], function(result) {
             const highlightedDomains = result.highlightedDomains || {};
             
             // Check if domain is already highlighted
             if (highlightedDomains[domain]) {
-                console.log('[Website Highlight] Domain already highlighted:', domain);
+  
                 showSimpleNotification(
                     `Already highlighted: ${domain}`,
                     '#2196F3'
@@ -773,7 +773,7 @@ if (window.serpCounterInitialized) {
             // Check if we already have 3 domains and this one is new
             const existingDomains = Object.keys(highlightedDomains);
             if (existingDomains.length >= 3 && !highlightedDomains[domain]) {
-                console.log('[Website Highlight] Maximum 3 domains reached. Cannot add:', domain);
+  
                 // Show a simple orange notification like copy feedback
                 showSimpleNotification(
                     `Maximum 3 domains reached. Remove one first to add ${domain}`,
@@ -785,7 +785,7 @@ if (window.serpCounterInitialized) {
             highlightedDomains[domain] = Date.now();
             
             chrome.storage.sync.set({highlightedDomains: highlightedDomains}, function() {
-                console.log('[Website Highlight] Highlight saved for domain:', domain);
+  
                 
                 // Update local state immediately
                 highlightedDomains.add(domain);

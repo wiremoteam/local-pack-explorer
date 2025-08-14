@@ -23,7 +23,7 @@
      * Initialize the extension
      */
     function init() {
-        console.log('[GSC Context Menu] Initializing...');
+      
         
         // Add event listeners
         document.addEventListener('contextmenu', handleContextMenu, true);
@@ -35,7 +35,7 @@
         // Listen for messages from background script
         chrome.runtime.onMessage.addListener(handleMessage);
         
-        console.log('[GSC Context Menu] Initialized successfully');
+        
     }
 
     /**
@@ -86,7 +86,7 @@
                     keyword: keyword
                 }).then(response => {
                     if (response && response.success) {
-                        console.log('[GSC Context Menu] Keyword detected:', keyword);
+              
                         
                         // Force menu rebuild by triggering a new context menu event
                         // This ensures the menu is rebuilt with the updated keyword
@@ -242,7 +242,7 @@
                 // Background script might not be listening, which is fine
             });
             
-            console.log('[GSC Context Menu] Keyword copied:', request.keyword);
+  
         }
     }
 

@@ -78,24 +78,9 @@ const RULE_TEMPLATES = {
       resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest"]
     }
   },
-  labs: {
-    id: 4,
-    priority: 1,
-    action: {
-      type: "modifyHeaders",
-      requestHeaders: [{
-        header: "x-geo",
-        operation: "set",
-        value: null // Will be set dynamically
-      }]
-    },
-    condition: {
-      urlFilter: "*://labs.google/*",
-      resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest"]
-    }
-  },
+
   accounts: {
-    id: 5,
+    id: 4,
     priority: 100,
     action: {
       type: "allow"
@@ -121,7 +106,6 @@ function createRules(headerValue) {
     { ...RULE_TEMPLATES.main },
     { ...RULE_TEMPLATES.googleCom },
     { ...RULE_TEMPLATES.wwwGoogleCom },
-    { ...RULE_TEMPLATES.labs },
     { ...RULE_TEMPLATES.accounts }
   ];
   
@@ -129,7 +113,6 @@ function createRules(headerValue) {
   rules[0].action.requestHeaders[0].value = headerValue;
   rules[1].action.requestHeaders[0].value = headerValue;
   rules[2].action.requestHeaders[0].value = headerValue;
-  rules[3].action.requestHeaders[0].value = headerValue;
   
   return rules;
 }
@@ -339,7 +322,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   
   if (request.action === 'apply-coordinates-from-gtrack') {
-    console.log('[Background] Received coordinates from GTrack:', request.coordinates);
+
     
     // Apply the coordinates immediately
     const newSettings = {
@@ -351,7 +334,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     // Save to storage and apply
     chrome.storage.sync.set({geoSettings: newSettings}, function() {
-      console.log('[Background] GTrack coordinates saved to storage');
+
       
       // Apply the geolocation settings
       applyGeolocation(newSettings);
@@ -502,7 +485,7 @@ function createContextMenu() {
       if (chrome.runtime.lastError) {
         console.error('[Website Highlight] Error creating context menu:', chrome.runtime.lastError);
       } else {
-        console.log('[Website Highlight] Context menu created successfully');
+    
       }
     });
   });
@@ -511,7 +494,7 @@ function createContextMenu() {
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'test-background-connection') {
-    console.log('[Website Highlight] Background script received test message');
+
     sendResponse({ success: true, message: 'Background script is responding' });
   } else if (request.action === 'preload-keyword') {
     // Pre-load keyword for faster context menu response
@@ -549,7 +532,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     sendResponse({ success: true });
   } else if (request.action === 'website-domain-detected') {
-    console.log('[Website Highlight] Received domain detection:', request.domain);
+    
     
     // Store domain info for website highlighting (same approach as Search Console)
     contextMenuInfo.domain = request.domain;
@@ -570,7 +553,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           });
         }, 100);
       } else {
-        console.log('[Website Highlight] Context menu updated successfully for domain:', request.domain);
+
       }
     });
     
@@ -685,7 +668,7 @@ async function copyKeywordToClipboard(keyword, tabId) {
       // Content script might not be listening, which is fine
     });
     
-    console.log('[GSC Context Menu] Copied keyword:', keyword);
+
   } catch (error) {
     console.error('[GSC Context Menu] Failed to copy keyword:', error);
   }
@@ -709,7 +692,7 @@ async function highlightWebsite(domain, tabId) {
     contextMenuInfo.domain = null;
     contextMenuInfo.tabId = null;
     
-    console.log('[Website Highlight] Sent highlight request for website:', domain);
+
   } catch (error) {
     console.error('[Website Highlight] Failed to send highlight request:', error);
   }

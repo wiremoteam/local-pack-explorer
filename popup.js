@@ -527,7 +527,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Helper functions
   function fetchLocationSuggestions(query, autoSelect = false) {
-    console.log('[Popup] fetchLocationSuggestions called with query:', query, 'autoSelect:', autoSelect);
+
 
     const url = `https://www.google.com/s?tbm=map&suggest=p&gs_ri=maps&gl=US&hl=en&authuser=0&q=${encodeURIComponent(query)}&ech=6&pb=%212i5%214m12%211m3%211d94818581.28087418%212d-20.23133860264248%213d42.377446969366396%212m3%211f0%212f0%213f0%213m2%211i791%212i754%214f13.1%217i20%2110b1%2112m16%211m1%2118b1%212m3%215m1%216e2%2120e3%2110b1%2112b1%2113b1%2116b1%2117m1%213e1%2120m3%215e2%216b1%2114b1%2119m4%212m3%211i360%212i120%214i8%2120m57%212m2%211i203%212i100%213m2%212i4%215b1%216m6%211m2%211i86%212i86%211m2%211i408%212i240%217m42%211m3%211e1%212b0%213e3%211m3%211e2%212b1%213e2%211m3%211e2%212b0%213e3%211m3%211e8%212b0%213e3%211m3%211e10%212b0%213e3%211m3%211e10%212b1%213e2%211m3%211e9%212b1%213e2%211m3%211e10%212b0%213e3%211m3%211e10%212b1%213e2%211m3%211e10%212b0%213e4%212b1%214b1%219b0%2122m3%211sAsuuZfP-HeT-7_UPpJ6DwAQ%217e81%2117sAsuuZfP-HeT-7_UPpJ6DwAQ%3A64%2123m3%211e116%214b1%2110b1%2124m90%211m29%2113m9%212b1%213b1%214b1%216i1%218b1%219b1%2114b1%2120b1%2125b1%2118m18%213b1%214b1%215b1%216b1%219b1%2112b1%2113b1%2114b1%2115b1%2117b1%2120b1%2121b1%2122b1%2125b1%2127m1%211b0%2128b0%2131b0%2110m1%218e3%2111m1%213e1%2114m1%213b1%2117b1%2120m2%211e3%211e6%2124b1%2125b1%2126b1%2129b1%2130m1%212b1%2136b1%2139m3%212m2%212i1%213i1%2143b1%2152b1%2154m1%211b1%2155b1%2156m2%211b1%213b1%2165m5%213m4%211m3%211m2%211i224%212i298%2171b1%2172m17%211m5%211b1%212b1%213b1%215b1%217b1%214b1%218m8%211m6%214m1%211e1%214m1%211e3%214m1%211e4%213sother_user_reviews%219b1%2189b1%21103b1%21113b1%21117b1%21122m1%211b1%2126m4%212m3%211i80%212i92%214i8%2134m18%212b1%213b1%214b1%216b1%218m6%211b1%213b1%214b1%215b1%216b1%217b1%219b1%2112b1%2114b1%2120b1%2123b1%2125b1%2126b1%2137m1%211e81%2147m0%2149m7%213b1%216m2%211b1%212b1%217m2%211e3%212b1%2161b1%2167m2%217b1%2110b1%2169i678`;
     
@@ -591,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
           });
         
-        console.log('[Popup] Parsed locations:', locations);
+
         
         
         
@@ -599,14 +599,14 @@ document.addEventListener('DOMContentLoaded', function() {
         suggestions.innerHTML = '';
         
         if (locations.length === 0) {
-          console.log('[Popup] No locations found after parsing');
+  
           suggestions.innerHTML = '<div class="suggestion-item">No suggestions found</div>';
           return;
         }
         
         // If autoSelect is true and we have results, automatically select the first one
         if (autoSelect && locations.length > 0) {
-          console.log('[Popup] Auto-selecting first location:', locations[0]);
+  
           const firstPlace = locations[0];
           latitudeInput.value = firstPlace.latitude;
           longitudeInput.value = firstPlace.longitude;
@@ -629,7 +629,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateSearchInputColor(true);
           }
           
-          console.log('[Popup] Auto-selecting - saving settings for:', firstPlace);
+  
           saveSettings({
             latitude: firstPlace.latitude,
             longitude: firstPlace.longitude,
@@ -642,7 +642,7 @@ document.addEventListener('DOMContentLoaded', function() {
             displaySavedLocations(savedLocations);
           });
           
-          console.log('[Popup] Auto-selection completed');
+  
           return; // Exit early since we auto-selected
         }
         
@@ -984,7 +984,7 @@ document.addEventListener('DOMContentLoaded', function() {
       historyItem.appendChild(deleteBtn);
       
       historyItem.addEventListener('click', function(e) {
-        console.log('[Popup] History item clicked:', item);
+
         
         // Don't trigger if clicking on delete button
         if (e.target.closest('.history-delete-btn')) {
@@ -1001,7 +1001,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check if the history item contains coordinates
         const coords = extractCoordinates(item);
         if (coords) {
-          console.log('[Popup] Found coordinates in history item:', coords);
+  
           
           // Apply coordinates directly
           latitudeInput.value = coords.latitude;
@@ -1034,12 +1034,12 @@ document.addEventListener('DOMContentLoaded', function() {
           // Update placeholder to show used coordinates
           locationInput.placeholder = coordLocation;
           
-          console.log('[Popup] Coordinates applied directly from history');
+  
           return; // Exit early since we applied coordinates directly
         }
         
         // If no coordinates found, use the original search approach
-        console.log('[Popup] No coordinates found, calling fetchLocationSuggestions with autoSelect=true for:', item);
+
         fetchLocationSuggestions(item, true); // true = auto-select first result
         
         // Enable spoofing if it was disabled

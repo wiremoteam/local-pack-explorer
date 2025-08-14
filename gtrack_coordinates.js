@@ -1,7 +1,7 @@
 // gtrack_coordinates.js - Content script for GTrack website
 // Handles copying GPS coordinates from pin popups
 
-console.log('[GTrack Coordinates] Content script loaded');
+
 
 
 
@@ -9,7 +9,7 @@ console.log('[GTrack Coordinates] Content script loaded');
 
 // Function to extract coordinates from the GPS coordinates text (GTrack specific)
 function extractCoordinatesFromText(text) {
-  console.log('[GTrack Coordinates] Extracting coordinates from GTrack text:', text);
+
   
   // Try multiple patterns to be more flexible
   const patterns = [
@@ -31,7 +31,7 @@ function extractCoordinatesFromText(text) {
       
       // Basic validation
       if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && !isNaN(lat) && !isNaN(lng)) {
-        console.log('[GTrack Coordinates] Pattern', i + 1, 'matched:', { latitude: lat, longitude: lng });
+  
         return {
           latitude: lat,
           longitude: lng
@@ -40,7 +40,7 @@ function extractCoordinatesFromText(text) {
     }
   }
   
-  console.log('[GTrack Coordinates] No valid coordinates found in text');
+
   return null;
 }
 
@@ -60,7 +60,7 @@ async function copyCoordinatesToClipboard(coordinates) {
     
     // Check if extension context is still valid
     if (!chrome.runtime?.id) {
-      console.log('[GTrack Coordinates] Extension context invalid, skipping coordinate application');
+  
       showCopyFeedback(coordText, 'copied');
       return;
     }
@@ -72,13 +72,13 @@ async function copyCoordinatesToClipboard(coordinates) {
       location: `GTrack: ${coordText}`
     });
     
-    console.log('[GTrack Coordinates] Extension response:', response);
+
     
     showCopyFeedback(coordText, 'applied');
     
   } catch (error) {
     if (error.message.includes('Extension context invalidated')) {
-      console.log('[GTrack Coordinates] Extension context invalidated');
+  
       showCopyFeedback(coordText, 'copied');
       return;
     }
@@ -110,7 +110,7 @@ function fallbackCopy(text) {
 
 // Function to show copy feedback
 function showCopyFeedback(coordinates, action = 'copied') {
-  console.log('[GTrack Coordinates] Showing copy feedback:', coordinates, action);
+
   
   // Create a temporary notification
   const notification = document.createElement('div');
@@ -124,18 +124,16 @@ function showCopyFeedback(coordinates, action = 'copied') {
     notification.textContent = `✓ Copied: ${coordinates}`;
   }
   
-  console.log('[GTrack Coordinates] Notification element created:', notification);
-  console.log('[GTrack Coordinates] Notification classes:', notification.className);
-  console.log('[GTrack Coordinates] Notification text:', notification.textContent);
+  
   
   document.body.appendChild(notification);
-  console.log('[GTrack Coordinates] Notification added to DOM');
+  
   
   // Remove after 3 seconds
   setTimeout(() => {
     if (notification.parentNode) {
       notification.parentNode.removeChild(notification);
-      console.log('[GTrack Coordinates] Notification removed from DOM');
+
     }
   }, 3000);
 }
@@ -165,7 +163,7 @@ function handleCopyButtonClick(event) {
   });
   
   coordinatesText = coordinatesText.trim();
-  console.log('[GTrack Coordinates] Found coordinates text:', coordinatesText);
+  
   
   // Extract coordinates
   const coordinates = extractCoordinatesFromText(coordinatesText);
@@ -174,7 +172,7 @@ function handleCopyButtonClick(event) {
     return;
   }
   
-  console.log('[GTrack Coordinates] Extracted coordinates:', coordinates);
+  
   
   // Copy coordinates to clipboard and apply to extension
   copyCoordinatesToClipboard(coordinates);
@@ -192,7 +190,7 @@ function initializeCopyButtons() {
     button.addEventListener('click', handleCopyButtonClick);
   });
   
-  console.log('[GTrack Coordinates] Initialized', copyButtons.length, 'copy buttons');
+
 }
 
 // Initialize when DOM is ready
@@ -224,7 +222,7 @@ const observer = new MutationObserver((mutations) => {
   });
   
   if (shouldReinitialize) {
-    console.log('[GTrack Coordinates] New copy buttons detected, reinitializing...');
+    
     setTimeout(initializeCopyButtons, 100); // Small delay to ensure DOM is ready
   }
 });
@@ -235,7 +233,7 @@ observer.observe(document.body, {
   subtree: true
 });
 
-console.log('[GTrack Coordinates] Mutation observer started');
+
 
 
 

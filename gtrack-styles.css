@@ -10,17 +10,16 @@
   background: #2563eb !important;
   color: #fff !important;
   font-weight: 600 !important;
-  border-radius: 50% !important;
+  border-radius: 4px !important;
   padding: 0 !important;
   margin-right: 5px !important;
   font-size: 10px !important;
   border: 2px solid #fff !important;
-  height: 24px !important;
-  width: 24px !important;
+  height: 20px !important;
+  width: 20px !important;
   position: relative !important;
   box-shadow: 0 2px 4px rgba(0,0,0,0.15) !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-
   vertical-align: text-bottom !important;
   flex-shrink: 0 !important;
 }

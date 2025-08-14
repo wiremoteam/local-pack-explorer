@@ -509,7 +509,7 @@ function extractCoordinatesFromMapsPanel() {
   
   // Look for text that contains coordinates
   const menuText = contextMenu.textContent || '';
-  console.log('[Maps Right-Click] Checking context menu text:', menuText);
+  
   
   // Pattern for GPS coordinates: latitude,longitude
   const gpsPattern = /(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/;
@@ -521,7 +521,7 @@ function extractCoordinatesFromMapsPanel() {
     
     // Basic validation
     if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && !isNaN(lat) && !isNaN(lng)) {
-      console.log('[Maps Right-Click] GPS coordinates found:', { latitude: lat, longitude: lng });
+
       return {
         latitude: lat,
         longitude: lng
@@ -539,7 +539,7 @@ async function applyCoordinatesToExtension(coordinates) {
   try {
     // Check if extension context is still valid
     if (!chrome.runtime?.id) {
-      console.log('[Maps Right-Click] Extension context invalid, skipping coordinate application');
+
       return;
     }
     
@@ -550,13 +550,13 @@ async function applyCoordinatesToExtension(coordinates) {
       location: `Google Maps: ${coordText}`
     });
     
-    console.log('[Maps Right-Click] Extension response:', response);
+    
     
     showMapsNotification(coordText, 'applied');
     
   } catch (error) {
     if (error.message.includes('Extension context invalidated')) {
-      console.log('[Maps Right-Click] Extension context invalidated');
+
       return;
     }
     console.error('[Maps Right-Click] Failed to apply coordinates to extension:', error);
@@ -565,7 +565,7 @@ async function applyCoordinatesToExtension(coordinates) {
 
 // Function to show notification for Google Maps
 function showMapsNotification(coordinates, action = 'applied') {
-  console.log('[Maps Right-Click] Showing notification:', coordinates, action);
+  
   
   const notification = document.createElement('div');
   
@@ -574,18 +574,16 @@ function showMapsNotification(coordinates, action = 'applied') {
     notification.textContent = `✓ Applied coordinates from Google Maps: ${coordinates}`;
   }
   
-  console.log('[Maps Right-Click] Notification element created:', notification);
-  console.log('[Maps Right-Click] Notification classes:', notification.className);
-  console.log('[Maps Right-Click] Notification text:', notification.textContent);
+  
   
   document.body.appendChild(notification);
-  console.log('[Maps Right-Click] Notification added to DOM');
+  
   
   // Remove after 4 seconds
   setTimeout(() => {
     if (notification.parentNode) {
       notification.parentNode.removeChild(notification);
-      console.log('[Maps Right-Click] Notification removed from DOM');
+  
     }
   }, 4000);
 }
@@ -618,16 +616,16 @@ function setupCoordinateClickListeners() {
       return;
     }
     
-    // Look for coordinate elements within the context menu
-    // Google Maps typically shows coordinates in elements with specific text patterns
-    const menuItems = contextMenu.querySelectorAll('[role="menuitem"], .menu-item, button, div');
+    // Look for specific coordinate elements within the context menu
+    // Google Maps shows coordinates in specific elements, we need to find the exact coordinate text
+    const allElements = contextMenu.querySelectorAll('*');
     
-    menuItems.forEach(item => {
-      const itemText = item.textContent || '';
+    allElements.forEach(element => {
+      const elementText = element.textContent || '';
       
-      // Check if this item contains coordinates
-      const gpsPattern = /(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/;
-      const match = itemText.match(gpsPattern);
+      // Check if this element contains ONLY coordinates (or coordinates with minimal text)
+      const gpsPattern = /^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/;
+      const match = elementText.trim().match(gpsPattern);
       
       if (match) {
         const lat = parseFloat(match[1]);
@@ -635,29 +633,26 @@ function setupCoordinateClickListeners() {
         
         // Basic validation
         if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && !isNaN(lat) && !isNaN(lng)) {
-          console.log('[Maps Right-Click] Found coordinate element:', itemText);
+
           
           // Check if we already added a click listener to this element
-          if (!item.hasAttribute('data-coordinate-click-listener')) {
-            item.setAttribute('data-coordinate-click-listener', 'true');
+          if (!element.hasAttribute('data-coordinate-click-listener')) {
+            element.setAttribute('data-coordinate-click-listener', 'true');
             
             // Add click listener
-            item.addEventListener('click', function(event) {
-              event.preventDefault();
-              event.stopPropagation();
-              
+            element.addEventListener('click', function(event) {
               const coordinates = {
                 latitude: lat,
                 longitude: lng
               };
               
-              console.log('[Maps Right-Click] Coordinate element clicked:', coordinates);
+
               
               // Check if these are the same coordinates we just processed
               if (lastProcessedCoordinates && 
                   Math.abs(lastProcessedCoordinates.latitude - coordinates.latitude) < 0.000001 &&
                   Math.abs(lastProcessedCoordinates.longitude - coordinates.longitude) < 0.000001) {
-                console.log('[Maps Right-Click] Same coordinates detected, skipping duplicate processing');
+
                 return;
               }
               
@@ -670,11 +665,10 @@ function setupCoordinateClickListeners() {
               // Reset the last processed coordinates after 5 seconds to allow new coordinates
               setTimeout(() => {
                 lastProcessedCoordinates = null;
-                console.log('[Maps Right-Click] Reset last processed coordinates');
               }, 5000);
             });
             
-            console.log('[Maps Right-Click] Added click listener to coordinate element');
+
           }
         }
       }
@@ -689,13 +683,13 @@ function setupCoordinateClickListeners() {
 function startRightClickMonitoring() {
   // Prevent multiple instances
   if (isMonitoringStarted) {
-    console.log('[Maps Right-Click] Right-click monitoring already started, skipping');
+
     return;
   }
   
   // Only start if document is focused
   if (!document.hasFocus() || document.hidden) {
-    console.log('[Maps Right-Click] Document not focused, not starting right-click monitoring');
+
     return;
   }
   
@@ -703,7 +697,7 @@ function startRightClickMonitoring() {
   const checkInterval = setInterval(setupCoordinateClickListeners, 1000);
   isMonitoringStarted = true;
   
-  console.log('[Maps Right-Click] Right-click panel monitoring started');
+  
   
   // Store the interval ID for cleanup
   window.mapsRightClickInterval = checkInterval;
@@ -715,7 +709,7 @@ function stopRightClickMonitoring() {
     clearInterval(window.mapsRightClickInterval);
     window.mapsRightClickInterval = null;
     isMonitoringStarted = false;
-    console.log('[Maps Right-Click] Right-click panel monitoring stopped');
+
   }
 }
 
@@ -736,7 +730,7 @@ function setupContextMenuObserver() {
             if (node.matches && (node.matches('[role="menu"]') || 
                                 node.matches('.context-menu') || 
                                 node.matches('[data-js-context-menu]'))) {
-              console.log('[Maps Right-Click] Context menu detected, setting up click listeners');
+        
               setTimeout(() => {
                 setupCoordinateClickListeners();
               }, 100); // Small delay to ensure menu is fully rendered
@@ -744,7 +738,7 @@ function setupContextMenuObserver() {
             
             // Also check if any child contains a context menu
             if (node.querySelector && node.querySelector('[role="menu"], .context-menu, [data-js-context-menu]')) {
-              console.log('[Maps Right-Click] Context menu detected in child, setting up click listeners');
+        
               setTimeout(() => {
                 setupCoordinateClickListeners();
               }, 100);
@@ -760,7 +754,7 @@ function setupContextMenuObserver() {
     subtree: true
   });
   
-  console.log('[Maps Right-Click] Context menu observer started');
+  
 }
 
 // Start context menu monitoring when page loads
@@ -781,11 +775,11 @@ window.addEventListener('beforeunload', () => {
 // Also stop monitoring when tab becomes hidden (to save resources)
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    console.log('[Maps Right-Click] Tab hidden, stopping right-click monitoring');
+
     stopRightClickMonitoring();
   } else {
     // Restart monitoring when tab becomes visible again
-    console.log('[Maps Right-Click] Tab visible, restarting right-click monitoring');
+    
     setTimeout(() => {
       startRightClickMonitoring();
     }, 500);
@@ -794,7 +788,7 @@ document.addEventListener('visibilitychange', () => {
 
 // Also handle focus events
 window.addEventListener('focus', () => {
-  console.log('[Maps Right-Click] Window focused, ensuring right-click monitoring is active');
+  
   if (!isMonitoringStarted) {
     setTimeout(() => {
       startRightClickMonitoring();
@@ -803,8 +797,8 @@ window.addEventListener('focus', () => {
 });
 
 window.addEventListener('blur', () => {
-  console.log('[Maps Right-Click] Window lost focus, stopping right-click monitoring');
+  
   stopRightClickMonitoring();
 });
 
-console.log('[Maps Right-Click] Google Maps right-click panel monitoring ready!');
+

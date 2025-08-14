@@ -8,13 +8,11 @@
     "declarativeNetRequest",
     "notifications",
     "contextMenus",
-    "activeTab",
     "clipboardWrite",
     "scripting"
   ],
   "host_permissions": [
-    "*://*.google.com/*",
-    "*://labs.google/*"
+    "*://*.google.com/*"
   ],
   "commands": {
     "toggle-location-spoofing": {
