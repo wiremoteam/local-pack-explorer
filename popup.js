@@ -23,15 +23,16 @@ document.addEventListener('DOMContentLoaded', function() {
   const confirmSaveBtn = document.getElementById('confirm-save-btn');
   
   // Load saved settings
-  chrome.storage.sync.get(['geoSettings', 'businessNumberingEnabled', 'serpNumberingEnabled', 'savedLocations', 'hotkeySettings', 'searchHistory'], function(result) {
+  chrome.storage.sync.get(['geoSettings', 'mapsNumberingEnabled', 'serpNumberingEnabled', 'savedLocations', 'hotkeySettings', 'searchHistory', 'highlightedDomains'], function(result) {
     const settings = result.geoSettings || {
       enabled: false,
       latitude: 40.7580,
       longitude: -73.9855,
-      location: "Times Square, New York, NY, USA"
+      location: "Times Square, New York, NY, USA",
+      radius: 6400
     };
     
-    const businessNumberingEnabled = result.businessNumberingEnabled !== undefined ? result.businessNumberingEnabled : true;
+    const businessNumberingEnabled = result.mapsNumberingEnabled !== undefined ? result.mapsNumberingEnabled : true;
     const serpNumberingEnabled = result.serpNumberingEnabled !== undefined ? result.serpNumberingEnabled : true;
     const savedLocations = result.savedLocations || [];
     const searchHistory = result.searchHistory || [];
@@ -55,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
     enableToggle.checked = settings.enabled;
     businessNumberingToggleModal.checked = businessNumberingEnabled;
     serpNumberingToggleModal.checked = serpNumberingEnabled;
+    geoRadiusInput.value = settings.radius || 6400;
     updateStatusText(settings.enabled);
     updateBusinessNumberingStatusModal(businessNumberingEnabled);
     
@@ -72,6 +74,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize save button state
     updateSaveButtonState();
+    
+    // Initialize highlighted websites
+    const highlightedDomains = result.highlightedDomains || {};
+    displayHighlightedWebsites(highlightedDomains);
   });
   
   // Listen for hotkey toggle messages from background script
@@ -304,6 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const businessNumberingToggleModal = document.getElementById('business-numbering-toggle-modal');
   const serpNumberingToggleModal = document.getElementById('serp-numbering-toggle-modal');
   const businessNumberingStatusModal = document.getElementById('business-numbering-status-modal');
+  const geoRadiusInput = document.getElementById('geo-radius-input');
   
   optionsIconBtn.addEventListener('click', function(e) {
     e.preventDefault();
@@ -327,14 +334,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Maps Result Numbering toggle event listener (modal version)
   businessNumberingToggleModal.addEventListener('change', function() {
-    chrome.storage.sync.set({businessNumberingEnabled: this.checked});
+    chrome.storage.sync.set({mapsNumberingEnabled: this.checked});
     updateBusinessNumberingStatusModal(this.checked);
     
     // Send message to content script to enable/disable numbering
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
       if (tabs[0] && tabs[0].url && tabs[0].url.includes('google.com/maps')) {
         chrome.tabs.sendMessage(tabs[0].id, {
-          action: 'toggleBusinessNumbering',
+          action: 'toggleMapsNumbering',
           enabled: this.checked
         });
       }
@@ -376,6 +383,19 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!isNaN(value)) {
       this.value = value.toFixed(7);
       saveSettings({longitude: value});
+    }
+  });
+  
+  // GEO Radius input event listener
+  geoRadiusInput.addEventListener('change', function() {
+    const value = parseInt(this.value);
+    if (!isNaN(value) && value > 0) {
+      this.value = value;
+      saveSettings({radius: value});
+    } else {
+      // Reset to default if invalid
+      this.value = 6400;
+      saveSettings({radius: 6400});
     }
   });
   
@@ -733,7 +753,8 @@ document.addEventListener('DOMContentLoaded', function() {
         enabled: false,
         latitude: 40.7580,
         longitude: -73.9855,
-        location: "Times Square, New York, NY, USA"
+        location: "Times Square, New York, NY, USA",
+        radius: 6400
       };
       
       // Update with new values
@@ -1440,5 +1461,163 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
     }
+    
+    // Handle highlighted domains changes
+    if (area === 'sync' && changes.highlightedDomains) {
+      const newHighlightedDomains = changes.highlightedDomains.newValue || {};
+      displayHighlightedWebsites(newHighlightedDomains);
+    }
   });
+  
+  // ===== HIGHLIGHTED WEBSITES MANAGEMENT =====
+  
+  // Elements for highlighted websites management
+  const highlightedWebsitesList = document.getElementById('highlighted-websites-list');
+  const newWebsiteInput = document.getElementById('new-website-input');
+  const addWebsiteBtn = document.getElementById('add-website-btn');
+  
+  // Display highlighted websites
+  function displayHighlightedWebsites(highlightedDomains) {
+    if (!highlightedWebsitesList) return;
+    
+    const domains = Object.keys(highlightedDomains);
+    
+    if (domains.length === 0) {
+      highlightedWebsitesList.innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div>No websites highlighted</div>
+          <div style="font-size: 11px; margin-top: 4px;">Right-click on search results to add websites</div>
+        </div>
+      `;
+      return;
+    }
+    
+    highlightedWebsitesList.innerHTML = '';
+    
+    domains.forEach(domain => {
+      const websiteItem = document.createElement('div');
+      websiteItem.className = 'highlighted-website-item';
+      websiteItem.innerHTML = `
+        <span class="website-domain">${domain}</span>
+        <button class="website-remove-btn" data-domain="${domain}" title="Remove ${domain}">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 18L18 6M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      `;
+      
+      // Add remove button event listener
+      const removeBtn = websiteItem.querySelector('.website-remove-btn');
+      removeBtn.addEventListener('click', function() {
+        removeHighlightedWebsite(domain);
+      });
+      
+      highlightedWebsitesList.appendChild(websiteItem);
+    });
+  }
+  
+  // Add highlighted website
+  function addHighlightedWebsite(domain) {
+    if (!domain || typeof domain !== 'string') return;
+    
+    // Clean the domain input
+    const cleanDomain = domain.trim().toLowerCase();
+    
+    // Basic domain validation
+    if (!cleanDomain.includes('.') || cleanDomain.length < 3) {
+      return;
+    }
+    
+    chrome.storage.sync.get(['highlightedDomains'], function(result) {
+      const highlightedDomains = result.highlightedDomains || {};
+      
+      // Check if domain is already highlighted
+      if (highlightedDomains[cleanDomain]) {
+        return;
+      }
+      
+      // Check if we already have 3 domains
+      const existingDomains = Object.keys(highlightedDomains);
+      if (existingDomains.length >= 3) {
+        return;
+      }
+      
+      // Add the domain
+      highlightedDomains[cleanDomain] = Date.now();
+      
+      chrome.storage.sync.set({highlightedDomains: highlightedDomains}, function() {
+        displayHighlightedWebsites(highlightedDomains);
+        
+        // Clear the input
+        if (newWebsiteInput) {
+          newWebsiteInput.value = '';
+        }
+      });
+    });
+  }
+  
+  // Remove highlighted website
+  function removeHighlightedWebsite(domain) {
+    chrome.storage.sync.get(['highlightedDomains'], function(result) {
+      const highlightedDomains = result.highlightedDomains || {};
+      
+      if (highlightedDomains[domain]) {
+        delete highlightedDomains[domain];
+        
+        chrome.storage.sync.set({highlightedDomains: highlightedDomains}, function() {
+          displayHighlightedWebsites(highlightedDomains);
+        });
+      }
+    });
+  }
+  
+  // Show notification
+  function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'gtrack-simple-notification';
+    notification.textContent = message;
+    
+    // Set color based on type
+    const colors = {
+      success: '#4CAF50',
+      warning: '#FF9800',
+      error: '#f44336',
+      info: '#2196F3'
+    };
+    
+    notification.style.background = colors[type] || colors.info;
+    
+    // Add to document
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    }, 3000);
+  }
+  
+  // Event listeners for highlighted websites
+  if (addWebsiteBtn) {
+    addWebsiteBtn.addEventListener('click', function() {
+      if (newWebsiteInput && newWebsiteInput.value.trim()) {
+        addHighlightedWebsite(newWebsiteInput.value.trim());
+      }
+    });
+  }
+  
+  if (newWebsiteInput) {
+    newWebsiteInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && this.value.trim()) {
+        addHighlightedWebsite(this.value.trim());
+      }
+    });
+  }
 });

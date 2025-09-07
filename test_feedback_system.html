@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTrack Feedback System Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background-color: #f9fafb;
+        }
+        .test-section h3 {
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        button.secondary {
+            background-color: #6b7280;
+        }
+        button.secondary:hover {
+            background-color: #4b5563;
+        }
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .status.info {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        .status.success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        .status.warning {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+        .usage-simulation {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        .usage-simulation button {
+            background-color: #10b981;
+            font-size: 12px;
+            padding: 8px 12px;
+        }
+        .usage-simulation button:hover {
+            background-color: #059669;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 GTrack Feedback System Test</h1>
+        
+        <div class="test-section">
+            <h3>📊 Current Feedback Data</h3>
+            <button onclick="showFeedbackData()">Show Current Data</button>
+            <button onclick="resetFeedbackData()" class="secondary">Reset All Data</button>
+            <button onclick="clearFeedbackRecord()" class="secondary">Clear Feedback Record Only</button>
+            <div id="feedback-data-status" class="status info" style="display: none;">
+                Loading feedback data...
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 Manual Feedback Trigger</h3>
+            <p>Manually trigger the feedback popup (bypasses normal eligibility checks):</p>
+            <button onclick="triggerFeedback()">Show Feedback Popup</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📈 Simulate Extension Usage</h3>
+            <p>Simulate user interactions to test the feedback eligibility logic:</p>
+            <div class="usage-simulation">
+                <button onclick="simulateLocationSpoofing()">Simulate Location Spoofing</button>
+                <button onclick="simulateLocationSave()">Simulate Location Save</button>
+                <button onclick="simulateWebsiteHighlight()">Simulate Website Highlight</button>
+                <button onclick="simulateMultipleUsage()">Simulate 5 Uses (Trigger Feedback)</button>
+            </div>
+            <div id="usage-status" class="status info" style="display: none;">
+                Usage simulation complete
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>⚙️ Feedback System Controls</h3>
+            <p>Advanced controls for testing different scenarios:</p>
+            <button onclick="setUsageCount(0)">Reset Usage Count</button>
+            <button onclick="setUsageCount(4)">Set Usage to 4</button>
+            <button onclick="setUsageCount(5)">Set Usage to 5 (Should Trigger)</button>
+            <button onclick="setUsageCount(10)">Set Usage to 10</button>
+            <button onclick="clearLastShown()">Clear Last Shown Date</button>
+            <button onclick="setLastShownOld()">Set Last Shown to 8 Days Ago</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 Instructions</h3>
+            <ol>
+                <li><strong>Test Basic Functionality:</strong> Click "Show Feedback Popup" to see the popup in action</li>
+                <li><strong>Test Eligibility Logic:</strong> Use "Simulate 5 Uses" to trigger feedback naturally</li>
+                <li><strong>Test Persistence:</strong> Check feedback data, reset, and verify it's cleared</li>
+                <li><strong>Test Spam Prevention:</strong> Try triggering feedback multiple times to see it won't show again</li>
+                <li><strong>Test Different Scenarios:</strong> Use the advanced controls to test edge cases</li>
+            </ol>
+        </div>
+    </div>
+
+    <script src="feedback_system.js"></script>
+    <script>
+        // Test functions
+        function showFeedbackData() {
+            const status = document.getElementById('feedback-data-status');
+            status.style.display = 'block';
+            status.className = 'status info';
+            status.textContent = 'Loading...';
+            
+            if (window.gtrackFeedbackSystem) {
+                const data = window.gtrackFeedbackSystem.feedbackData;
+                status.innerHTML = `
+                    <strong>Current Feedback Data:</strong><br>
+                    • Has Shown Feedback: ${data.hasShownFeedback}<br>
+                    • Feedback Shown Count: ${data.feedbackShownCount}<br>
+                    • Last Feedback Shown: ${data.lastFeedbackShown ? new Date(data.lastFeedbackShown).toLocaleString() : 'Never'}<br>
+                    • User Feedback: ${data.userFeedback || 'None'}<br>
+                    • Extension Usage Count: ${data.extensionUsageCount}<br>
+                    • Last Active Date: ${data.lastActiveDate ? new Date(data.lastActiveDate).toLocaleString() : 'Never'}
+                `;
+                status.className = 'status success';
+            } else {
+                status.textContent = 'Feedback system not initialized';
+                status.className = 'status warning';
+            }
+        }
+
+        function resetFeedbackData() {
+            if (window.gtrackFeedbackSystem) {
+                window.gtrackFeedbackSystem.resetFeedbackData();
+                const status = document.getElementById('feedback-data-status');
+                status.style.display = 'block';
+                status.textContent = 'Feedback data reset successfully!';
+                status.className = 'status success';
+            }
+        }
+
+        function clearFeedbackRecord() {
+            if (window.gtrackFeedbackSystem) {
+                window.gtrackFeedbackSystem.clearFeedbackRecord();
+                const status = document.getElementById('feedback-data-status');
+                status.style.display = 'block';
+                status.textContent = 'Feedback record cleared - popup can show again!';
+                status.className = 'status success';
+            }
+        }
+
+        function triggerFeedback() {
+            if (window.gtrackFeedbackSystem) {
+                window.gtrackFeedbackSystem.triggerFeedback();
+            } else {
+                alert('Feedback system not initialized');
+            }
+        }
+
+        function simulateLocationSpoofing() {
+            if (window.gtrackFeedbackSystem) {
+                window.gtrackFeedbackSystem.incrementUsageCount();
+                showUsageStatus('Simulated location spoofing');
+            }
+        }
+
+        function simulateLocationSave() {
+            if (window.gtrackFeedbackSystem) {
+                window.gtrackFeedbackSystem.incrementUsageCount();
+                showUsageStatus('Simulated location save');
+            }
+        }
+
+        function simulateWebsiteHighlight() {
+            if (window.gtrackFeedbackSystem) {
+                window.gtrackFeedbackSystem.incrementUsageCount();
+                showUsageStatus('Simulated website highlight');
+            }
+        }
+
+        function simulateMultipleUsage() {
+            if (window.gtrackFeedbackSystem) {
+                // Simulate 5 uses quickly
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        window.gtrackFeedbackSystem.incrementUsageCount();
+                    }, i * 100);
+                }
+                showUsageStatus('Simulated 5 uses - feedback should trigger!');
+            }
+        }
+
+        function setUsageCount(count) {
+            if (window.gtrackFeedbackSystem) {
+                window.gtrackFeedbackSystem.feedbackData.extensionUsageCount = count;
+                window.gtrackFeedbackSystem.saveFeedbackData();
+                showUsageStatus(`Usage count set to ${count}`);
+            }
+        }
+
+        function clearLastShown() {
+            if (window.gtrackFeedbackSystem) {
+                window.gtrackFeedbackSystem.feedbackData.lastFeedbackShown = null;
+                window.gtrackFeedbackSystem.saveFeedbackData();
+                showUsageStatus('Last shown date cleared');
+            }
+        }
+
+        function setLastShownOld() {
+            if (window.gtrackFeedbackSystem) {
+                const eightDaysAgo = Date.now() - (8 * 24 * 60 * 60 * 1000);
+                window.gtrackFeedbackSystem.feedbackData.lastFeedbackShown = eightDaysAgo;
+                window.gtrackFeedbackSystem.saveFeedbackData();
+                showUsageStatus('Last shown date set to 8 days ago');
+            }
+        }
+
+        function showUsageStatus(message) {
+            const status = document.getElementById('usage-status');
+            status.style.display = 'block';
+            status.textContent = message;
+            status.className = 'status success';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+
+        // Initialize test page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Feedback system test page loaded');
+            console.log('Available functions:', {
+                showFeedbackData,
+                resetFeedbackData,
+                triggerFeedback,
+                simulateLocationSpoofing,
+                simulateLocationSave,
+                simulateWebsiteHighlight,
+                simulateMultipleUsage,
+                setUsageCount,
+                clearLastShown,
+                setLastShownOld
+            });
+        });
+    </script>
+</body>
+</html>

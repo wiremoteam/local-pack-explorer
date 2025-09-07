@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "GEO Location Spoofer for Maps & Search by GTrack",
-  "version": "2.3",
-  "description": "Professional location spoofing tool for Google Maps and Google Search, plus Search Console keyword copying tools. Local SEO Tools",
+  "name": "Google Rank Tracker. Geolocation Spoofing. Fake Location for SEO Check",
+  "version": "2.6",
+  "description": "Google Rank Tracker with Geolocation Spoofing. Fake GPS location to check SEO rankings in any place and track results easily.",
   "permissions": [
     "storage",
     "declarativeNetRequest",
@@ -67,11 +67,19 @@
     },
     {
       "matches": [
-        "https://gtrack.wiremo.co/*"
+        "https://gtrack.wiremo.co/*",
+        "http://localhost:3000/*"
+
       ],
       "css": ["gtrack-styles.css"],
       "js": ["gtrack_coordinates.js"],
       "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["feedback_system.js"],
+      "matches": ["<all_urls>"]
     }
   ]
 }

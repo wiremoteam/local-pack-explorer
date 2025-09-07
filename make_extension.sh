@@ -32,6 +32,7 @@ zip "$PACKAGE_NAME" \
     maps_counter.js \
     search_console_context.js \
     gtrack_coordinates.js \
+    feedback_system.js \
     gtrack-styles.css \
     img/icon16.png \
     img/icon48.png \

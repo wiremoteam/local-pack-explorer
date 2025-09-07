@@ -20,6 +20,9 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
     let lastAdNumberUsed = 0; // Track the last number used for ads
     let mapsNumberingEnabled = true; // Track Maps Result numbering state
     let lastSearchQuery = ''; // Track the last search query
+    let processedPlaceIds = new Set(); // Track which place IDs have been numbered
+    let processedAdPlaceIds = new Set(); // Track which ad place IDs have been numbered
+    let processingCards = new Set(); // Track cards currently being processed to prevent race conditions
 
     // Load setting from storage on startup
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
@@ -81,33 +84,66 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
     function getCurrentSearchQuery() {
         try {
             const url = new URL(window.location.href);
-            return url.searchParams.get('q') || url.pathname.replace('/maps/search/', '').replace('/maps/place/', '') || '';
+            // First try to get from query parameter
+            const queryParam = url.searchParams.get('q');
+            if (queryParam) {
+                // Normalize the query parameter too
+                return queryParam.replace(/\+/g, ' ').replace(/\s+/g, ' ').toLowerCase().trim();
+            }
+            
+            // If no query param, extract from pathname using the same normalization logic
+            return normalizeUrlForComparison(window.location.href);
         } catch (error) {
             return '';
         }
     }
 
-    // Function to detect if content has been refreshed
-    function isContentRefreshed() {
-        const cards = getCachedCards();
-        if (cards.length === 0) return false;
-        
-        // Check if ALL cards don't have badges
-        let cardsWithoutBadges = 0;
-        let totalCards = 0;
-        
-        cards.forEach(card => {
-            totalCards++;
-            if (!card.querySelector('.gtrack-counter, .gtrack-ad-counter-badge')) {
-                cardsWithoutBadges++;
+    // Function to normalize URL for comparison (removes zoom, coordinates, and other dynamic params)
+    function normalizeUrlForComparison(url) {
+        try {
+            const urlObj = new URL(url);
+            
+            // Extract just the search query part
+            const pathParts = urlObj.pathname.split('/');
+            const searchIndex = pathParts.indexOf('search');
+            
+            if (searchIndex !== -1 && pathParts[searchIndex + 1]) {
+                // Get the search term (decode it and normalize spaces)
+                let searchTerm = decodeURIComponent(pathParts[searchIndex + 1]);
+                // Replace plus signs with spaces and normalize multiple spaces
+                searchTerm = searchTerm.replace(/\+/g, ' ').replace(/\s+/g, ' ');
+                return searchTerm.toLowerCase().trim();
             }
-        });
+            
+            return '';
+        } catch (error) {
+            return '';
+        }
+    }
+
+    // Function to detect if this is a completely new search/page load
+    function isNewSearchOrPageLoad() {
+        const currentUrl = location.href;
+        const currentSearchQuery = getCurrentSearchQuery();
         
-        // If ALL cards don't have badges, content was refreshed
-        if (totalCards > 0 && cardsWithoutBadges === totalCards) {
-            // console.log(`[Maps Counter] Content refresh detected: all ${totalCards} cards have no badges`);
+        // Normalize URLs to compare only the search terms, ignoring zoom, coordinates, etc.
+        const normalizedCurrentUrl = normalizeUrlForComparison(currentUrl);
+        const normalizedLastUrl = normalizeUrlForComparison(lastPlaceHref);
+        
+        // Check if the actual search term changed (not just zoom/coordinates)
+        if (normalizedCurrentUrl !== normalizedLastUrl && normalizedCurrentUrl !== '' && normalizedLastUrl !== '') {
+            lastPlaceHref = currentUrl;
             return true;
         }
+        
+        // Check if search query changed (fallback)
+        if (currentSearchQuery !== lastSearchQuery) {
+            lastSearchQuery = currentSearchQuery;
+            return true;
+        }
+        
+        // Update lastPlaceHref even if no reset needed (for future comparisons)
+        lastPlaceHref = currentUrl;
         
         return false;
     }
@@ -125,29 +161,37 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
     // Function to number regular Maps results
     function numberRegularResults() {
         const cards = getCachedCards();
-        if (!cards.length) return;
-
-        // Stop numbering after 20 results
-        if (lastNumberUsed >= 20) {
-            // console.log('[Maps Counter] Reached 20 results limit, stopping numbering');
+        if (!cards.length) {
             return;
         }
 
-        // console.log(`[Maps Counter] Numbering regular results... (${cards.length} cards, starting from ${lastNumberUsed + 1}, limit: 20)`);
+        // Stop numbering after 20 results
+        if (lastNumberUsed >= 20) {
+            return;
+        }
 
-        const processedCards = new Set();
         let localCounter = lastNumberUsed + 1; // Start from the last number + 1
         let newCardsCount = 0;
 
         cards.forEach(card => {
+            let placeId = null;
             try {
-                const placeId = getPlaceId(card);
+                placeId = getPlaceId(card);
                 if (!placeId || isSponsored(card)) return; // Skip ads
                 
-                // Check if this card already has a badge
+                // IMMEDIATE check: Does this card already have a badge? (prevents fast scroll duplicates)
                 if (card.querySelector('.gtrack-counter, .gtrack-ad-counter-badge')) {
-                    // console.log(`[Maps Counter] Skipping already numbered card: ${card.querySelector('.qBF1Pd, .fontHeadlineSmall')?.textContent?.trim() || 'unknown'}`);
-                    return;
+                    return; // Skip cards that already have any badge
+                }
+                
+                // Check if this card is currently being processed (race condition prevention)
+                if (processingCards.has(placeId)) {
+                    return; // Skip cards currently being processed
+                }
+                
+                // Check if this place ID has already been processed
+                if (processedPlaceIds.has(placeId)) {
+                    return; // Skip already processed place
                 }
                 
                 // Double-check the limit before processing
@@ -156,7 +200,9 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
                     return;
                 }
                 
-                processedCards.add(placeId);
+                // Mark this card as being processed IMMEDIATELY
+                processingCards.add(placeId);
+                processedPlaceIds.add(placeId);
 
                 const badge = document.createElement('span');
                 badge.className = 'gtrack-counter';
@@ -185,12 +231,16 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
                 newCardsCount++;
             } catch (error) {
                 // console.warn('[Maps Counter] Error processing regular card:', error.message);
+            } finally {
+                // Remove from processing set when done (success or error)
+                if (placeId) {
+                    processingCards.delete(placeId);
+                }
             }
         });
 
         // Update the last number used, but cap it at 20
         lastNumberUsed = Math.min(localCounter - 1, 20);
-        // console.log(`[Maps Counter] Regular results numbered: ${newCardsCount} new cards (lastNumberUsed: ${lastNumberUsed})`);
     }
 
     // Function to number Maps ads
@@ -199,8 +249,8 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
         if (!cards.length) return;
 
         // Stop numbering ads after 20 results
-        if (lastNumberUsed >= 20) {
-            // console.log('[Maps Counter] Reached 20 results limit, stopping ad numbering');
+        if (lastAdNumberUsed >= 20) {
+            // console.log('[Maps Counter] Reached 20 ads limit, stopping ad numbering');
             return;
         }
 
@@ -210,8 +260,9 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
         let newAdsCount = 0;
 
         cards.forEach(card => {
+            let placeId = null;
             try {
-                const placeId = getPlaceId(card);
+                placeId = getPlaceId(card);
                 const isAd = isSponsored(card);
                 
                 if (!placeId) {
@@ -223,16 +274,35 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
                     return; // Skip non-ads
                 }
                 
+                // IMMEDIATE check: Does this card already have a badge? (prevents fast scroll duplicates)
+                if (card.querySelector('.gtrack-counter, .gtrack-ad-counter-badge')) {
+                    return; // Skip cards that already have any badge
+                }
+                
+                // Check if this card is currently being processed (race condition prevention)
+                if (processingCards.has(placeId)) {
+                    return; // Skip cards currently being processed
+                }
+                
+                // Check if this ad place ID has already been processed
+                if (processedAdPlaceIds.has(placeId)) {
+                    return; // Skip already processed ad
+                }
+                
+                // Double-check the limit before processing
+                if (adCounter > 20) {
+                    // console.log(`[Maps Counter] Reached 20 ads limit, stopping at #${adCounter}`);
+                    return;
+                }
+                
+                // Mark this card as being processed IMMEDIATELY
+                processingCards.add(placeId);
+                processedAdPlaceIds.add(placeId);
+                
                 const nameEl = card.querySelector('.qBF1Pd, .fontHeadlineSmall');
                 const nameTxt = nameEl ? nameEl.textContent.trim() : '(no name)';
 
                 // console.log(`[Maps Counter] Processing ad: ${nameTxt} (counter: ${adCounter})`);
-
-                // Check if card already has an ad number
-                if (card.querySelector('.gtrack-ad-counter-badge')) {
-                    // console.log(`[Maps Counter] Skipping already numbered ad: ${nameTxt}`);
-                    return; // Skip if already numbered
-                }
 
                 // Also check if it has a regular badge and remove it (shouldn't happen for ads)
                 const regularBadge = card.querySelector('.gtrack-counter');
@@ -266,6 +336,11 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
                 newAdsCount++;
             } catch (error) {
                 // console.warn('[Maps Counter] Error processing ad card:', error.message);
+            } finally {
+                // Remove from processing set when done (success or error)
+                if (placeId) {
+                    processingCards.delete(placeId);
+                }
             }
         });
 
@@ -278,26 +353,18 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
     function runNumbering() {
         // Check if numbering is enabled
         if (!mapsNumberingEnabled) {
-            // console.log('[Maps Counter] Maps Result numbering disabled, removing existing numbers');
             getCachedCounters().forEach(el => el.remove());
             document.querySelectorAll('.gtrack-ad-counter-badge').forEach(el => el.remove());
             return;
         }
 
-        // Check if this is a new search
-        const currentSearchQuery = getCurrentSearchQuery();
-        if (currentSearchQuery !== lastSearchQuery) {
-            // console.log('[Maps Counter] New search detected, resetting counters');
-            lastSearchQuery = currentSearchQuery;
+        // Only reset counters on actual new search or page load, not on scrolling
+        if (isNewSearchOrPageLoad()) {
             lastNumberUsed = 0; // Reset regular result counter for new search
             lastAdNumberUsed = 0; // Reset ad counter for new search
-        }
-
-        // Check if content was refreshed
-        if (isContentRefreshed()) {
-            // console.log('[Maps Counter] Content refresh detected - resetting all counters');
-            lastNumberUsed = 0;
-            lastAdNumberUsed = 0;
+            processedPlaceIds.clear(); // Clear processed place IDs
+            processedAdPlaceIds.clear(); // Clear processed ad place IDs
+            processingCards.clear(); // Clear processing cards
         }
 
         // console.log('[Maps Counter] Running numbering functions...');
@@ -312,30 +379,27 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
     
     const debouncedRunNumbering = debounce(() => {
         if (isNumberingInProgress) {
-            // console.log('[Maps Counter] Numbering already in progress, skipping');
             return;
         }
         isNumberingInProgress = true;
         try {
             runNumbering();
         } catch (error) {
-            // console.warn('[Maps Counter] Error in runNumbering:', error.message);
+            // Silent error handling
         } finally {
             setTimeout(() => {
                 isNumberingInProgress = false;
-            }, 500);
+            }, 200);
         }
-    }, 300);
+    }, 150);
 
     /* ───────── Content Detection ───────── */
     function detectSearchResults() {
         const cards = getCachedCards();
         const currentCount = cards.length;
         if (currentCount > 0 && currentCount !== lastCardCount) {
-            const previousCount = lastCardCount;
             lastCardCount = currentCount;
             DOM_CACHE.cards = null;
-            // console.log(`[Maps Counter] New content detected: ${currentCount} cards (previous: ${previousCount})`);
             
             setTimeout(() => {
                 debouncedRunNumbering();
@@ -366,7 +430,6 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
             });
             if (hasChanges) {
                 DOM_CACHE.cards = null;
-                // console.log('[Maps Counter] Content change detected, updating numbers');
                 setTimeout(() => {
                     debouncedRunNumbering();
                 }, 500);
@@ -413,6 +476,14 @@ if (window.mapsCounterInitialized && window.mapsCounterInitialized === true) {
             initializeScript();
         }
     }, 1000);
+    
+    // Clear processing cards set every 10 seconds to prevent stuck cards
+    setInterval(() => {
+        if (processingCards.size > 0) {
+            // console.log(`[Maps Counter] Clearing ${processingCards.size} stuck processing cards`);
+            processingCards.clear();
+        }
+    }, 10000);
 
     /* ───────── Kickoff ───────── */
     function attemptInitialization() {

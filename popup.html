@@ -15,7 +15,7 @@
     body {
       font-family: 'Inter', sans-serif;
       width: 400px;
-
+      
       background-color: #f8fafc;
       color: #1e293b;
       overflow-y: auto;
@@ -438,10 +438,11 @@
       border-radius: 12px;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
       width: 320px;
-      max-width: 90vw;
-      max-height: 90vh;
+      height: 420px;
       overflow: hidden;
       animation: modalSlideIn 0.3s ease-out;
+      display: flex;
+      flex-direction: column;
     }
 
     @keyframes modalSlideIn {
@@ -462,6 +463,7 @@
       justify-content: space-between;
       padding: 20px 20px 16px 20px;
       border-bottom: 1px solid #e2e8f0;
+      flex-shrink: 0;
     }
 
     .modal-header h3 {
@@ -491,6 +493,8 @@
 
     .modal-body {
       padding: 20px;
+      overflow-y: auto;
+      flex: 1;
     }
 
     .form-group {
@@ -578,6 +582,7 @@
       gap: 12px;
       padding: 16px 20px 20px 20px;
       border-top: 1px solid #e2e8f0;
+      flex-shrink: 0;
     }
 
     .modal-btn {
@@ -739,6 +744,139 @@
     .hotkey-display {
       display: flex;
       align-items: center;
+    }
+    
+    /* Highlighted Websites Section Styles */
+    .highlighted-websites-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+    }
+    
+    .section-header h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1e293b;
+      margin: 0 0 4px 0;
+    }
+    
+    .section-description {
+      font-size: 12px;
+      color: #64748b;
+      margin: 0 0 16px 0;
+      line-height: 1.4;
+    }
+    
+    .highlighted-websites-list {
+      margin-bottom: 16px;
+      max-height: 120px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background-color: #f8fafc;
+      padding: 8px;
+    }
+    
+    .highlighted-website-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      transition: all 0.2s;
+    }
+    
+    .highlighted-website-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .highlighted-website-item:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .website-domain {
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      flex: 1;
+    }
+    
+    .website-remove-btn {
+      background: none;
+      border: none;
+      padding: 4px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #64748b;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+    }
+    
+    .website-remove-btn:hover {
+      background-color: #fef2f2;
+      color: #dc2626;
+    }
+    
+    .website-remove-btn svg {
+      width: 12px;
+      height: 12px;
+    }
+    
+    .add-website-form {
+      margin-top: 12px;
+    }
+    
+    .input-with-button {
+      display: flex;
+      align-items: center;
+    }
+    
+    .form-note {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 20px;
+      color: #64748b;
+      font-size: 13px;
+    }
+    
+    .empty-state svg {
+      width: 24px;
+      height: 24px;
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+    
+    /* Custom scrollbar for modal body */
+    .modal-body::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .modal-body::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 10px;
+    }
+    
+    .modal-body::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+    
+    .modal-body::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
     }
   </style>
 </head>
@@ -918,6 +1056,31 @@
             Number Google search results and ad results
           </div>
           
+          <!-- Highlighted Websites Section -->
+          <div class="highlighted-websites-section">
+            <div class="section-header">
+              <h4>Highlighted Websites</h4>
+              <p class="section-description">Manage websites that will be highlighted in Google search results</p>
+            </div>
+            
+            <div class="highlighted-websites-list" id="highlighted-websites-list">
+              <!-- Highlighted websites will be populated here -->
+            </div>
+            
+            <div class="add-website-form">
+              <div class="form-group">
+                <label for="new-website-input">Add Website:</label>
+                <div class="input-with-button">
+                  <input type="text" id="new-website-input" class="modal-input" placeholder="Enter domain (e.g., example.com)" maxlength="100">
+                  <button id="add-website-btn" class="modal-btn primary" style="margin-left: 8px; padding: 8px 12px; font-size: 12px;">Add</button>
+                </div>
+              </div>
+              <div class="form-note" style="font-size: 11px; color: #64748b; margin-top: 4px;">
+                Maximum 3 websites. Right-click on any search result to quickly add a website.
+              </div>
+            </div>
+          </div>
+          
           <div class="hotkey-section">
             <div class="toggle-container">
               <span class="toggle-label">Keyboard Shortcut</span>
@@ -927,6 +1090,17 @@
             </div>
             <div class="hotkey-note" style="font-size: 12px; color: #64748b; margin-top: 8px; padding-left: 4px;">
               Use this keyboard shortcut to quickly toggle location spoofing on/off
+            </div>
+          </div>
+          
+          <!-- GEO Radius Section -->
+          <div class="geo-radius-section" style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+            <div class="form-group">
+              <label for="geo-radius-input" style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">GEO Radius (meters)</label>
+              <input type="number" id="geo-radius-input" class="modal-input" placeholder="6400" min="1" max="999999" style="width: 100%;">
+              <div class="form-note" style="font-size: 12px; color: #64748b; margin-top: 8px; padding-left: 4px;">
+                Sets the accuracy/uncertainty sent in the x-geo header. Larger values simulate a broader area; smaller values simulate a precise location. Default: 6400 (meters). Numbers only.
+              </div>
             </div>
           </div>
         </div>
@@ -942,6 +1116,7 @@
   </div>
 
   <script src="popup.js"></script>
+  <script src="feedback_system.js"></script>
 </body>
 
 </html>

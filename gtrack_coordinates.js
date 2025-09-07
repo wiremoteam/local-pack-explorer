@@ -1,11 +1,3 @@
-// gtrack_coordinates.js - Content script for GTrack website
-// Handles copying GPS coordinates from pin popups
-
-
-
-
-
-
 
 // Function to extract coordinates from the GPS coordinates text (GTrack specific)
 function extractCoordinatesFromText(text) {

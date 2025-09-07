@@ -3,7 +3,8 @@ const defaultSettings = {
   enabled: false,
   latitude: 40.7580,
   longitude: -73.9855,
-  location: "Times Square, New York, NY, USA"
+  location: "Times Square, New York, NY, USA",
+  radius: 6400
 };
 
 // Context menu state
@@ -93,10 +94,10 @@ const RULE_TEMPLATES = {
 };
 
 // Optimized function to create x-geo header value
-function createXgeoHeader(latitude, longitude) {
+function createXgeoHeader(latitude, longitude, radius = 6400) {
   const lat = Math.floor(latitude * 1e7);
   const lng = Math.floor(longitude * 1e7);
-  const xgeo = `role: CURRENT_LOCATION\nproducer: DEVICE_LOCATION\nradius: 6400\nlatlng <\n  latitude_e7: ${lat}\n  longitude_e7: ${lng}\n>`;
+  const xgeo = `role: CURRENT_LOCATION\nproducer: DEVICE_LOCATION\nradius: ${radius}\nlatlng <\n  latitude_e7: ${lat}\n  longitude_e7: ${lng}\n>`;
   return 'a ' + btoa(xgeo);
 }
 
@@ -163,7 +164,7 @@ async function applyGeolocation(settings) {
   try {
     if (settings.enabled) {
       // Create encoded x-geo header value
-      const headerValue = createXgeoHeader(settings.latitude, settings.longitude);
+      const headerValue = createXgeoHeader(settings.latitude, settings.longitude, settings.radius);
       
       // Check if header value changed
       if (currentHeaderValue !== headerValue) {
@@ -208,7 +209,7 @@ async function initializeExtension() {
   try {
     // console.log('Initializing extension...');
     const result = await new Promise((resolve) => {
-      chrome.storage.sync.get(['geoSettings', 'hotkeySettings'], resolve);
+      chrome.storage.sync.get(['geoSettings', 'hotkeySettings', 'savedLocations'], resolve);
     });
     
           // console.log('Storage result:', result);
@@ -230,6 +231,22 @@ async function initializeExtension() {
           } else {
         // console.log('Hotkey settings already exist:', result.hotkeySettings);
       }
+    
+    // Create default saved location if none exist
+    if (!result.savedLocations || result.savedLocations.length === 0) {
+      const defaultSavedLocation = {
+        name: "New York, NY",
+        latitude: 40.712775,
+        longitude: -74.005973,
+        location: "New York, NY, USA",
+        timestamp: Date.now()
+      };
+      
+      await new Promise((resolve) => {
+        chrome.storage.sync.set({savedLocations: [defaultSavedLocation]}, resolve);
+      });
+      // console.log('Default saved location created: New York, NY');
+    }
     
     // Check if commands are properly registered
     chrome.commands.getAll((commands) => {
