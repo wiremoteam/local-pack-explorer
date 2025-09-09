@@ -1,4 +1,36 @@
 // background.js - Production Optimized Version
+
+// Function to send message with retry mechanism
+async function sendMessageWithRetry(tabId, message, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await chrome.tabs.sendMessage(tabId, message);
+      console.log("✅ Message sent successfully to content script");
+      return;
+    } catch (error) {
+      console.warn(`❌ Attempt ${attempt}/${maxRetries} failed to send message:`, error.message);
+      
+      if (attempt === maxRetries) {
+        console.error("❌ All retry attempts failed. Content script may not be ready.");
+        return;
+      }
+      
+      // Wait before retrying (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+}
+
+// Function to check if content script is ready
+async function isContentScriptReady(tabId) {
+  try {
+    await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 const defaultSettings = {
   enabled: false,
   latitude: 40.7580,
@@ -27,6 +59,7 @@ const defaultHotkeySettings = {
 let currentHeaderValue = null;
 let currentSettings = null;
 let isProcessing = false;
+
 
 // Pre-computed rule templates for better performance
 const RULE_TEMPLATES = {
@@ -207,12 +240,10 @@ async function applyGeolocation(settings) {
 // Optimized initialization with error handling
 async function initializeExtension() {
   try {
-    // console.log('Initializing extension...');
     const result = await new Promise((resolve) => {
       chrome.storage.sync.get(['geoSettings', 'hotkeySettings', 'savedLocations'], resolve);
     });
     
-          // console.log('Storage result:', result);
     const settings = result.geoSettings || defaultSettings;
     const hotkeySettings = result.hotkeySettings || defaultHotkeySettings;
     
@@ -223,13 +254,10 @@ async function initializeExtension() {
     }
     
     if (!result.hotkeySettings) {
-      // console.log('Setting default hotkey settings...');
       await new Promise((resolve) => {
         chrome.storage.sync.set({hotkeySettings: defaultHotkeySettings}, resolve);
       });
-      // console.log('Default hotkey settings saved');
           } else {
-        // console.log('Hotkey settings already exist:', result.hotkeySettings);
       }
     
     // Create default saved location if none exist
@@ -245,19 +273,16 @@ async function initializeExtension() {
       await new Promise((resolve) => {
         chrome.storage.sync.set({savedLocations: [defaultSavedLocation]}, resolve);
       });
-      // console.log('Default saved location created: New York, NY');
     }
     
     // Check if commands are properly registered
     chrome.commands.getAll((commands) => {
-      // console.log('Available commands:', commands);
       
       // Ensure the toggle command exists
       const toggleCommand = commands.find(cmd => cmd.name === 'toggle-location-spoofing');
       if (!toggleCommand) {
         console.warn('Toggle command not found! This might cause hotkey issues.');
       } else {
-        // console.log('Toggle command found:', toggleCommand);
       }
     });
     
@@ -276,7 +301,6 @@ async function initializeExtension() {
 
 // Initialize on install
 chrome.runtime.onInstalled.addListener((details) => {
-      // console.log('Extension installed/updated:', details.reason);
   
   // Add a small delay to ensure commands are registered
   setTimeout(() => {
@@ -366,9 +390,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Hotkey command listener
 chrome.commands.onCommand.addListener(async (command) => {
-        // console.log('Command received:', command);
   if (command === 'toggle-location-spoofing') {
-          // console.log('Toggle command executed successfully');
     try {
       const result = await new Promise((resolve) => {
         chrome.storage.sync.get(['geoSettings', 'hotkeySettings'], resolve);
@@ -377,7 +399,6 @@ chrome.commands.onCommand.addListener(async (command) => {
       const settings = result.geoSettings || defaultSettings;
       const hotkeySettings = result.hotkeySettings || defaultHotkeySettings;
       
-              // console.log('Hotkey settings:', hotkeySettings);
       // Only toggle if hotkey is enabled
       if (hotkeySettings.enabled) {
         const newEnabled = !settings.enabled;
@@ -466,6 +487,323 @@ chrome.runtime.onSuspend.addListener(() => {
     clearTimeout(storageChangeTimeout);
   }
 });
+
+// ===== GOOGLE MAPS PLACE TRACKER FUNCTIONALITY =====
+
+// Track processed requests to prevent duplicates
+const processedRequests = new Map();
+
+// Store the last JSON data for debugging
+let lastJsonData = null;
+
+// Listen for messages from content script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'get-json-data') {
+    if (lastJsonData) {
+      sendResponse({jsonData: lastJsonData});
+    } else {
+      sendResponse({error: "No JSON data available"});
+    }
+    return true; // Keep the message channel open for async response
+  }
+}); 
+
+chrome.webRequest.onCompleted.addListener(
+  (details) => {
+    
+    
+    if (details.url.startsWith("https://www.google.com/maps/preview/place?authuser=")) {
+      
+
+      if (details.url.endsWith("pf=t")) {
+        return; 
+      }
+
+      // Check if we've already processed this exact URL recently
+      const currentTime = Date.now();
+      const lastProcessedTime = processedRequests.get(details.url);
+      
+      if (lastProcessedTime && (currentTime - lastProcessedTime) < 2000) {
+        return;
+      }
+      
+      // Mark this URL as processed
+      processedRequests.set(details.url, currentTime);
+      
+
+      // Fetch the data
+      fetch(details.url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.text();
+        })
+        .then(data => {
+
+          if (data.startsWith(")]}'")) {
+            data = data.slice(4); 
+          }
+
+          let parsedData;
+          try {
+            parsedData = JSON.parse(data);
+
+          } catch (e) {
+            console.error("Error parsing JSON:", e);
+            return;
+          }
+
+          // Validate JSON structure
+          
+          if (Array.isArray(parsedData)) {
+            
+            
+          }
+          
+          if (!parsedData || !Array.isArray(parsedData) || !parsedData[6]) {
+            console.error("❌ Unexpected JSON structure:", parsedData);
+            return;
+          }
+          
+          
+
+          // Extract business data
+          const getNestedValue = (obj, path) => {
+            return path.reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : null), obj);
+          };
+
+          // Debug: Print EVERYTHING - comprehensive structure dump
+          console.log("🔍 === COMPLETE PARSED DATA STRUCTURE ===");
+          // console.log("📋 Full parsedData:", parsedData);
+          // console.log("📋 parsedData type:", typeof parsedData);
+          // console.log("📋 parsedData length:", parsedData.length);
+          // console.log("📋 parsedData keys:", Object.keys(parsedData || {}));
+          
+          // Function to recursively print all data
+          function printAllData(obj, path = "", maxDepth = 15, currentDepth = 0) {
+            if (currentDepth >= maxDepth) {
+              console.log(`⚠️ DEPTH LIMIT REACHED at ${path} (depth ${currentDepth}) - data may be truncated`);
+              return;
+            }
+            
+            if (Array.isArray(obj)) {
+              console.log(`📋 ${path} (Array, length: ${obj.length}):`, obj);
+              for (let i = 0; i < obj.length; i++) {
+                printAllData(obj[i], `${path}[${i}]`, maxDepth, currentDepth + 1);
+              }
+            } else if (obj && typeof obj === 'object') {
+              console.log(`📋 ${path} (Object):`, obj);
+              const keys = Object.keys(obj);
+              console.log(`📋 ${path} keys:`, keys);
+              for (const key of keys) {
+                printAllData(obj[key], `${path}.${key}`, maxDepth, currentDepth + 1);
+              }
+            } else {
+              console.log(`📋 ${path}:`, obj);
+            }
+          }
+          
+          // Print everything with full depth
+          printAllData(parsedData, "parsedData", 15, 0);
+          
+          // Also try to find specific patterns that might contain services
+          console.log("🔍 === SEARCHING FOR SERVICES PATTERNS ===");
+          function searchForServices(obj, path = "", depth = 0) {
+            if (depth > 10) return;
+            
+            if (Array.isArray(obj)) {
+              for (let i = 0; i < obj.length; i++) {
+                searchForServices(obj[i], `${path}[${i}]`, depth + 1);
+              }
+            } else if (obj && typeof obj === 'object') {
+              for (const key of Object.keys(obj)) {
+                if (key.toString().toLowerCase().includes('service') || 
+                    key.toString().toLowerCase().includes('amenity') ||
+                    key.toString().toLowerCase().includes('feature')) {
+                  console.log(`🎯 FOUND SERVICES-RELATED KEY: ${path}.${key}`, obj[key]);
+                }
+                searchForServices(obj[key], `${path}.${key}`, depth + 1);
+              }
+            }
+          }
+          
+          searchForServices(parsedData, "parsedData", 0);
+          
+          console.log("🔍 === END COMPLETE STRUCTURE ===");
+
+
+          const businessName = getNestedValue(parsedData, [6, 11]) || "N/A";
+          const address = getNestedValue(parsedData, [6, 2]) ? parsedData[6][2].join(', ') : "N/A";
+          const latitude = getNestedValue(parsedData, [6, 9, 2]) || "N/A";
+          const longitude = getNestedValue(parsedData, [6, 9, 3]) || "N/A";
+          const rating = getNestedValue(parsedData, [6, 4, 7]) || "N/A";
+          const reviewCount = getNestedValue(parsedData, [6, 4, 8]) || "N/A";
+          const placeId = getNestedValue(parsedData, [6, 78]) || "N/A";
+          const website = getNestedValue(parsedData, [6, 7, 0]) || "N/A";
+          const types = getNestedValue(parsedData, [6, 13]) || "N/A";
+          const servicesRaw = getNestedValue(parsedData, [6, 125, 0, 0, 1, 0, 1, 0]) || "N/A";
+          
+          // Simple debug to see what we're getting
+          console.log("🔍 Services Raw:", servicesRaw);
+          console.log("🔍 Services Raw type:", typeof servicesRaw);
+          // console.log("🔍 Services Raw is array:", Array.isArray(servicesRaw));
+          
+          // Extract service names from each array
+          let services = "N/A";
+          if (servicesRaw && Array.isArray(servicesRaw) && servicesRaw.length > 0) {
+            console.log("🔍 Total services found:", servicesRaw.length);
+            
+            const serviceNames = [];
+            
+            // Loop through each service array
+            servicesRaw.forEach((service, index) => {
+              console.log(`🔍 Processing service ${index}:`, service);
+              
+              if (service && Array.isArray(service) && service.length > 0) {
+                const serviceArray = service[0];
+                // console.log(`🔍 Service ${index} array:`, serviceArray);
+                
+                if (serviceArray && Array.isArray(serviceArray) && serviceArray.length > 0) {
+                  const serviceName = serviceArray[0];
+                  console.log(`🔍 Service ${index} name:`, serviceName);
+                  
+                  if (serviceName && typeof serviceName === 'string' && serviceName.trim() !== "") {
+                    serviceNames.push(serviceName);
+                  }
+                }
+              }
+            });
+            
+            console.log("🔍 All service names:", serviceNames);
+            services = serviceNames.length > 0 ? serviceNames : "N/A";
+          }
+          const CID = getNestedValue(parsedData, [25, 3, 0, 13, 0, 0, 1]) || "N/A";
+          const canClaim = getNestedValue(parsedData, [6, 49, 1]) || "N/A";
+          const image = getNestedValue(parsedData, [6, 157]) || "N/A";
+          const businessHours = getNestedValue(parsedData, [6, 34, 1]) || "N/A";
+          const timezone = getNestedValue(parsedData, [6, 30]) || "N/A";
+          const openStatus = getNestedValue(parsedData, [6, 203, 1, 4, 0]) || "N/A";
+          const businessDescription = getNestedValue(parsedData, [6, 154, 0, 0]) || "N/A";
+          const editBusinessUrl = getNestedValue(parsedData, [6, 96, 5, 0, 5]) || "N/A";
+          const mapsUrl = details.url;
+          const phone = getNestedValue(parsedData, [6, 178, 0, 0]) || "N/A";
+          const description = getNestedValue(parsedData, [6, 32, 0, 1]) || "N/A";        // Count photos and posts
+          const photos = getNestedValue(parsedData, [6, 42]) || [] || "N/A";
+          const photoCount = Array.isArray(photos) ? photos.length : 0;
+          const posts = getNestedValue(parsedData, [6, 43]) || [] || "N/A";
+          const postCount = Array.isArray(posts) ? posts.length : 0;
+          const servicesData = getNestedValue(parsedData, [6, 34]) || "N/A";
+          // Extract opening hours from services[1] structure
+          let openingHours = "N/A";
+          let lastUpdate = "N/A";
+
+          if (servicesData && Array.isArray(servicesData)) {
+            // Extract opening hours from services[1]
+            if (servicesData[1] && Array.isArray(servicesData[1])) {
+              const hoursData = servicesData[1];
+              const hoursArray = [];
+              
+              // Process each day (7 days of the week)
+              for (let i = 0; i < Math.min(hoursData.length, 7); i++) {
+                const dayData = hoursData[i];
+                if (Array.isArray(dayData) && dayData.length > 1) {
+                  const dayName = dayData[0] || `Day ${i + 1}`;
+                  const hours = dayData[1];
+                  
+                  if (Array.isArray(hours) && hours.length > 0) {
+                    // Extract hours from the array
+                    const hoursText = hours[0] || "Closed";
+                    hoursArray.push(`${dayName}: ${hoursText}`);
+                  } else if (typeof hours === 'string') {
+                    hoursArray.push(`${dayName}: ${hours}`);
+                  } else {
+                    hoursArray.push(`${dayName}: Closed`);
+                  }
+                }
+              }
+              
+              if (hoursArray.length > 0) {
+                openingHours = hoursArray.join(', ');
+              }
+            }
+            
+            // Extract last update from services[9]
+            if (servicesData[9] && Array.isArray(servicesData[9]) && servicesData[9].length > 0) {
+              const updateText = servicesData[9][0];
+              if (typeof updateText === 'string' && updateText.trim()) {
+                lastUpdate = updateText.trim();
+              }
+            }
+          }
+          
+
+
+          
+
+          // Always send the data - let content script handle debouncing
+
+          // Send data to content script
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]) {
+              const messageData = {
+                action: 'place-data-received',
+                businessName,
+                address,
+                placeId,
+                latitude,
+                longitude,
+                rating,
+                reviewCount,
+                website,
+                types,
+                services,
+                CID,
+                canClaim,
+                mapsUrl,
+                phone,
+                description,
+                photoCount,
+                postCount,
+                openingHours,
+                lastUpdate,
+                image,
+                businessHours,
+                timezone,
+                openStatus,
+                businessDescription,
+                editBusinessUrl
+              };
+              
+              // Debug: Log what we're sending
+              
+              // Wait a bit for content script to be ready, then send message with retry mechanism
+              setTimeout(() => {
+                sendMessageWithRetry(tabs[0].id, messageData, 3);
+              }, 1000);
+            }
+          });
+        })
+        .catch(error => {
+          console.error("Error fetching file:", error);
+        });
+    }
+  },
+  {
+    urls: ["*://www.google.com/maps/preview/place?authuser=*"],
+    types: ["xmlhttprequest", "main_frame", "sub_frame", "other"]
+  }
+);
+
+// Clean up processed requests periodically
+setInterval(() => {
+  const currentTime = Date.now();
+  processedRequests.forEach((timestamp, url) => {
+    if (currentTime - timestamp > 10000) { // Remove entries older than 10 seconds
+      processedRequests.delete(url);
+    }
+  });
+}, 5000);
 
 // ===== SEARCH CONSOLE CONTEXT MENU FUNCTIONALITY =====
 
@@ -678,12 +1016,10 @@ async function copyKeywordToClipboard(keyword, tabId) {
     });
     
     // Notify content script that keyword was copied
-    chrome.tabs.sendMessage(tabId, {
+    sendMessageWithRetry(tabId, {
       action: 'keyword-copied',
       keyword: keyword
-    }).catch(() => {
-      // Content script might not be listening, which is fine
-    });
+    }, 2);
     
 
   } catch (error) {
@@ -695,10 +1031,10 @@ async function copyKeywordToClipboard(keyword, tabId) {
 async function highlightWebsite(domain, tabId) {
   try {
     // Always send message to content script to handle highlighting and limit checking
-    await chrome.tabs.sendMessage(tabId, {
+    await sendMessageWithRetry(tabId, {
       action: 'highlight-website',
       domain: domain
-    });
+    }, 2);
     
     // Hide the context menu after attempting to highlight
     chrome.contextMenus.update('highlight-website', {

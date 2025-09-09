@@ -9,7 +9,8 @@
     "notifications",
     "contextMenus",
     "clipboardWrite",
-    "scripting"
+    "scripting",
+    "webRequest"
   ],
   "host_permissions": [
     "*://*.google.com/*"
@@ -54,7 +55,7 @@
         "https://www.google.com/maps/*"
       ],
       "css": ["gtrack-styles.css"],
-      "js": ["maps_counter.js"],
+      "js": ["maps_counter.js", "place_tracker.js"],
       "run_at": "document_start"
     },
     {
